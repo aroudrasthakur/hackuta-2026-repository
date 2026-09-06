@@ -1,3 +1,4 @@
+import { Ship } from './art/Ship'
 const DISCORD_URL = 'https://discord.gg/2bVsYS3SgS'
 const DEVPOST_URL = 'https://hackuta7.devpost.com/'
 
@@ -56,7 +57,12 @@ export function About() {
             </li>
           ))}
         </ul>
-      </div>
+        {/* Ship access */}
+        <div className="about-ship"> 
+  <Ship rowing={true} tone="clay" />
+   </div>
+        
+  </div>
     </section>
   )
 }
