@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
+/* HackUTA Odyssey — parchment + navy palette from the landing mockup */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --parchment: #f2efe7;
+  --parchment-dark: #e8e4da;
+  --navy: #1a3a63;
+  --navy-light: #2a5080;
+  --foam: #f2efe7;
+
+  --background: var(--parchment);
+  --foreground: var(--navy);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-parchment: var(--parchment);
+  --color-parchment-dark: var(--parchment-dark);
+  --color-navy: var(--navy);
+  --color-navy-light: var(--navy-light);
+  --color-foam: var(--foam);
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cinzel), ui-serif, Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    scroll-behavior: smooth;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    background-color: var(--parchment);
+    color: var(--navy);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
 }
