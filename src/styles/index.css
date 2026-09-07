@@ -1,5 +1,326 @@
 @import "tailwindcss";
+#about .about-island-container .odyssey-call-inner {
+  position: relative !important;
+  z-index: 20 !important;
 
+  width: 72% !important;
+  max-width: 850px !important;
+
+  margin: 0 auto !important;
+
+  padding-top: 70px !important;
+  padding-bottom: 80px !important;
+}
+
+#about .about-island-container .odyssey-call-title {
+  width: 100% !important;
+  max-width: 780px !important;
+
+  margin-left: auto !important;
+  margin-right: auto !important;
+
+  font-size: clamp(42px, 4vw, 64px) !important;
+  line-height: 1.05 !important;
+}
+#about .odyssey-call-lede {
+  color: #1e2f40 !important;
+  opacity: 1 !important;
+}
+/* ===== ABOUT CONTENT ENTRANCE ===== */
+
+#about .odyssey-call-title,
+#about .odyssey-call-lede,
+#about .odyssey-call-actions,
+#about .odyssey-call-perks {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Trigger once section enters viewport */
+#about.about-visible .odyssey-call-title {
+  animation: aboutFadeUp 0.7s ease forwards;
+  animation-delay: 0.15s;
+}
+
+#about.about-visible .odyssey-call-lede {
+  animation: aboutFadeUp 0.7s ease forwards;
+  animation-delay: 0.35s;
+}
+
+#about.about-visible .odyssey-call-actions {
+  animation: aboutFadeUp 0.7s ease forwards;
+  animation-delay: 0.55s;
+}
+
+#about.about-visible .odyssey-call-perks {
+  animation: aboutFadeUp 0.7s ease forwards;
+  animation-delay: 0.75s;
+}
+
+@keyframes aboutFadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes aboutFadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* ===== ABOUT ISLAND IMAGE ===== */
+
+.about-island-container {
+  position: relative;
+  width: min(1200px, 92%);
+  margin: 40px auto 100px;
+
+  background: transparent !important;
+  clip-path: none !important;
+  overflow: visible;
+
+  padding: 0;
+  z-index: 4;
+}
+/* Island artwork */
+.about-island-image {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+
+  z-index: 1;
+  pointer-events: none;
+}
+/* Your actual text/buttons */
+.about-island-container .section-inner {
+  position: relative;
+  z-index: 10;
+
+  padding: 170px 60px 120px;
+}
+
+/* rocky cliff underside */
+
+.island-ridge {
+  position: absolute;
+  top: 54px;
+  left: 14%;
+  right: 14%;
+  height: 24px;
+
+  background: #ead9b8;
+
+  clip-path: polygon(
+    0% 60%,
+    8% 20%,
+    18% 55%,
+    30% 15%,
+    42% 48%,
+    55% 18%,
+    68% 50%,
+    80% 16%,
+    92% 52%,
+    100% 28%,
+    100% 100%,
+    0% 100%
+  );
+
+  z-index: 5;
+}
+/* content above island layers */
+.about-island-container .section-inner {
+  position: relative;
+  z-index: 20;
+}
+.about-island-container .odyssey-call-inner {
+  min-height: 0 !important;
+  padding-top: 40px !important;
+  padding-bottom: 40px !important;
+}
+#about .odyssey-call-title {
+  font-size: clamp(3rem, 5vw, 5.5rem);
+}
+/* dark rocky body */
+.about-island-container::after {
+  content: "";
+  position: absolute;
+
+  left: 5%;
+  right: 5%;
+  bottom: -2%;
+  height: 34%;
+
+  background: #7f563f;
+
+  clip-path: polygon(
+    0% 18%,
+    8% 5%,
+    16% 20%,
+    24% 8%,
+    34% 24%,
+    44% 9%,
+    54% 26%,
+    64% 10%,
+    75% 22%,
+    86% 8%,
+    100% 18%,
+    94% 48%,
+    86% 68%,
+    76% 82%,
+    64% 92%,
+    50% 100%,
+    36% 94%,
+    24% 84%,
+    13% 68%,
+    5% 45%
+  );
+
+  z-index: 1;
+}
+.about-temple {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 150px;
+  height: 95px;
+
+  z-index: 30;
+  pointer-events: none;
+}
+
+.temple-roof {
+  width: 100%;
+  height: 28px;
+
+  background: #ead8b7;
+
+  clip-path: polygon(
+    50% 0%,
+    100% 100%,
+    0% 100%
+  );
+}
+
+.temple-columns {
+  display: flex;
+  justify-content: space-evenly;
+
+  width: 80%;
+  height: 48px;
+
+  margin: 0 auto;
+
+  background: #ead8b7;
+  #about .odyssey-call-title {
+  font-size: clamp(3rem, 5vw, 5.5rem);
+}
+}
+
+.temple-columns span {
+  width: 9px;
+  height: 45px;
+
+  background: #f3e7cf;
+}
+
+.temple-base {
+  width: 100%;
+  height: 12px;
+
+  background: #ead8b7;
+
+  border-radius: 3px;
+}
+.island-trees {
+  position: absolute;
+  top: 35px;   /* change from -25px */
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  z-index: 10;
+}
+/* =====================================
+   ISLAND TREES
+===================================== */
+
+.island-trees {
+  position: absolute;
+
+  /* Keep trees inside island clip-path */
+  top: 35px;
+
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Left group */
+.island-trees-left {
+  left: 22%;
+}
+
+/* Right group */
+.island-trees-right {
+  right: 22%;
+}
+
+/* Individual tree */
+.island-trees span {
+  display: block;
+
+  width: 22px;
+  height: 70px;
+
+  background: #4f6345;
+
+  /* Cypress / Greek island tree shape */
+  clip-path: polygon(
+    50% 0%,
+    65% 15%,
+    72% 32%,
+    65% 45%,
+    78% 62%,
+    65% 75%,
+    60% 90%,
+    58% 100%,
+    42% 100%,
+    40% 90%,
+    35% 75%,
+    22% 62%,
+    35% 45%,
+    28% 32%,
+    35% 15%
+  );
+}
+
+/* Small tree */
+.island-trees span:nth-child(1) {
+  width: 17px;
+  height: 52px;
+}
+
+/* Tall middle tree */
+.island-trees span:nth-child(2) {
+  width: 21px;
+  height: 82px;
+}
+
+/* Medium tree */
+.island-trees span:nth-child(3) {
+  width: 18px;
+  height: 63px;
+}
 @font-face {
   font-family: "Barlow Semi Condensed";
   src: url('/fonts/BarlowSemiCondensed-Regular.woff2') format('woff2');
@@ -2254,4 +2575,164 @@
       transition: none;
     }
   }
+}
+/* ===== About Section Hidden Ship ===== */
+.about-waves svg {
+  width: 105%;
+  height: 100px;
+  margin-left: -2.5%;
+  animation: ocean-drift 3s ease-in-out infinite alternate;
+}
+
+@keyframes ocean-drift {
+  0% {
+    transform: translateX(-8px);
+  }
+
+  50% {
+    transform: translateX(4px);
+  }
+
+  100% {
+    transform: translateX(8px);
+  }
+}
+
+
+
+/* SHIP */
+
+.about-ship {
+  position: absolute;
+  right: 60px;
+  bottom: 55px;
+  width: 180px;
+  z-index: 10;
+  cursor: pointer;
+
+  transition: transform 4s ease-in-out;
+}
+
+
+/* Ship artwork */
+.about-ship .art-ship {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Click ship -> sail toward island */
+.about-ship.sailing {
+  transform: translateX(-520px);
+}
+
+
+/* Click ship → sail left */
+
+.about-ship.sailing {
+  transform: translateX(calc(-100vw + 300px));
+  /* Make About waves shorter */
+.about-waves {
+  height: 25px;
+}
+
+.about-waves svg {
+  height: 25x;
+}
+/* ===== ABOUT OCEAN ===== */
+
+.about-ocean {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 120px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Blue water */
+.ocean-water {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  height: 75px;
+
+  background: #315d78;
+  opacity: 0.75;
+
+  z-index: 0;
+}
+
+/* Wave lines */
+.about-waves {
+  position: absolute;
+  left: 0;
+  bottom: -50px;
+
+  width: 100%;
+  height: 100px;
+
+  z-index: 2;
+}
+
+.about-waves svg {
+  width: 100%;
+  height: 120px;
+  display: block;
+}
+
+/* Ship stays above water */
+.about-ship {
+  z-index: 5;
+}
+.about-waves-back {
+  z-index: 3;
+  opacity: 0.75;
+}
+
+.about-ship {
+  z-index: 5;
+}
+
+.about-waves-front {
+  z-index: 7;
+  height: 55px;
+  overflow: hidden;
+
+  /* move foreground water slightly lower */
+  transform: translateY(15px);
+}
+
+.about-waves-front svg {
+  height: 85px;
+}
+/* Keep the 2 About waves close together */
+.about-waves {
+  height: 100px !important;
+  overflow: hidden !important;
+}
+
+.about-waves svg {
+  width: 100% !important;
+  height: 100px !important;
+  display: block;
+}
+/* ===== POSITION CONTENT INSIDE ISLAND ===== */
+
+.about-island-container .odyssey-call-inner {
+  position: relative;
+  z-index: 10;
+
+  width: 75%;
+  max-width: 950px;
+  margin: 0 auto;
+
+  padding-top: 210px;
+  padding-bottom: 120px;
+}
+
+
 }
