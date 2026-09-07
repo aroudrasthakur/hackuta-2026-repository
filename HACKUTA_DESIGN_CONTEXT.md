@@ -5,9 +5,10 @@ Last updated: September 4, 2026
 ## Project status
 
 - Repository: `hackuta-2026-repository`
-- The repository currently has no commits or checked-out application files.
-- Current scope is only the frontend landing page.
-- The team wants a highly polished, scroll-driven site comparable in quality to HackUTD, but with an original HackUTA identity.
+- Current scope is the frontend landing page only.
+- **Implemented sections:** Hero, About, Schedule (tabbed day timeline), FAQ, Sponsors, Footer.
+- **Retired from the live page:** the four-chapter Voyage scroll sequence and the standalone Arrival CTA (footer now carries the homecoming content).
+- Palette tokens live in `src/styles/index.css` (`--color-*` / `--ink`, `--clay`, etc.).
 
 ## Theme and chosen art direction
 
@@ -76,7 +77,7 @@ The date, location, and registration CTA must be visible in the initial viewport
    - Keep the accordion conventional and readable.
    - Only use subtle eye, tile, or incised-line motion.
 
-9. **Patrons of the Journey — Sponsors**
+9. **Sponsors of the Journey**
    - Treat logos like makers' stamps while retaining their official colors and legibility when required.
    - Avoid a large pinned animation here.
 
@@ -124,13 +125,15 @@ This provides a dramatic transformation grounded in the historical move from bla
 
 ## Visual system
 
-Starter palette:
+Site palette (defined in `src/styles/index.css`):
 
-- Kiln black: `#17100D`
-- Fired terracotta: `#B94E2F`
-- Sun-baked clay: `#D7804F`
-- Bone/incision: `#F0D7A6`
-- Wine red: `#6E211B`
+- Ink: `#1a3a52` (`--color-ink` / `--ink`) — primary text and borders
+- Night: `#102f46` (`--color-night` / `--night`) — dark section backgrounds
+- Clay: `#eee3d2` (`--color-clay` / `--clay`) — light section backgrounds
+- Sand: `#ded0bc` (`--color-sand` / `--sand`) — secondary surfaces
+- Light: `#f6eddf` (`--color-light` / `--light`) — lighter highlights
+- Ocean: `#305873` (`--color-ocean` / `--ocean`) — accent / secondary text
+- Mist: `#8ca1aa` (`--color-mist` / `--mist`) — muted UI
 
 Avoid metallic gold and white marble as dominant treatments; they push the identity toward generic neoclassical luxury rather than pottery.
 
@@ -198,16 +201,3 @@ Use public-domain/CC0 museum material as reference and build original HackUTA il
 - SVG mask transitions: https://tympanus.net/codrops/2026/03/11/svg-mask-transitions-on-scroll-with-gsap-and-scrolltrigger/
 - GSAP responsive setup: https://gsap.com/docs/v3/GSAP/gsap.matchMedia%28%29/
 - Reduced motion: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/%40media/prefers-reduced-motion
-
-## Immediate next deliverables
-
-Before implementing the application:
-
-1. Make a focused moodboard using the references above.
-2. Produce a six-frame storyboard for the amphora hero.
-3. Produce one wide storyboard for the complete Living Frieze.
-4. Finalize real hero copy, event date, location, and CTA destination.
-5. Create the first reusable SVG figures and border vocabulary.
-6. Test the proposed visual language in one desktop hero frame and one 375px mobile frame.
-
-For a future Codex session, ask it to read this file before planning or implementing the HackUTA landing page.
