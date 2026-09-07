@@ -1,7 +1,10 @@
-import { type RefObject, useEffect, useRef, useState } from "react";
-import { clamp01 } from "../utils/clamp";
-
-const DISCORD_URL = "https://discord.gg/2bVsYS3SgS";
+import { type RefObject, useEffect, useRef, useState } from 'react'
+import { clamp01 } from '../utils/clamp'
+import { Ship } from './art/Ship'
+import { Waves } from './art/Waves'
+import islandImage from './art/island.png'
+const DISCORD_URL = 'https://discord.gg/2bVsYS3SgS'
+const DEVPOST_URL = 'https://hackuta7.devpost.com/'
 
 const perks = [
   { label: "24 Hours of Building", tone: "terracotta" as const },
@@ -36,7 +39,7 @@ function OdysseyButton({
       className="odyssey-btn inline-flex items-center justify-center"
       href={href}
       target="_blank"
-      rel="noopener noreferrer"
+      rel="noopener noreferrer" 
     >
       {children}
     </a>
@@ -137,69 +140,121 @@ function OdysseyBoat({
     </div>
   );
 }
-
 export function About() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const boatRef = useRef<HTMLDivElement>(null);
-  const [revealed, setRevealed] = useState(false);
+  const [sailing, setSailing] = useState(false)
 
+  const sectionRef = useRef<HTMLElement | null>(null)
+  const [isVisible, setIsVisible] = useState(false)
+
+  const boatRef = useRef<HTMLDivElement>(null)
+  const [revealed, setRevealed] = useState(false)
+
+  /* Your About entrance animation */
   useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
+    const section = sectionRef.current
+    if (!section) return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!entry) return;
-        setRevealed(entry.isIntersecting);
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          observer.disconnect()
+        }
       },
-      { threshold: 0.18 },
-    );
+      {
+        threshold: 0.25
+      }
+    )
 
-    observer.observe(section);
-    return () => observer.disconnect();
-  }, []);
+    observer.observe(section)
 
+    return () => observer.disconnect()
+  }, [])
+
+  /* Teammates' reveal behavior */
   useEffect(() => {
-    const section = sectionRef.current;
-    const boat = boatRef.current;
-    if (!section || !boat) return;
-    let frame = 0;
+    const section = sectionRef.current
+    if (!section) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry) return
+        setRevealed(entry.isIntersecting)
+      },
+      { threshold: 0.18 }
+    )
+
+    observer.observe(section)
+
+    return () => observer.disconnect()
+  }, [])
+
+  /* Teammates' scrolling boat */
+  useEffect(() => {
+    const section = sectionRef.current
+    const boat = boatRef.current
+
+    if (!section || !boat) return
+
+    let frame = 0
+
     const update = () => {
-      const bounds = section.getBoundingClientRect();
+      const bounds = section.getBoundingClientRect()
+
       const progress = clamp01(
-        (innerHeight - bounds.top) / (bounds.height + innerHeight),
-      );
-      const curve = Math.sin(progress * Math.PI);
+        (innerHeight - bounds.top) / (bounds.height + innerHeight)
+      )
+
+      const curve = Math.sin(progress * Math.PI)
+
       boat.style.setProperty(
         "--boat-left",
-        `${-2 + progress * 14 + curve * 1.5}%`,
-      );
-      boat.style.setProperty("--boat-top", `${6 + progress * 84}%`);
+        `${-2 + progress * 14 + curve * 1.5}%`
+      )
+
+      boat.style.setProperty(
+        "--boat-top",
+        `${6 + progress * 84}%`
+      )
+
       const curveAngle =
-        (Math.atan2(14 + 1.5 * Math.PI * Math.cos(progress * Math.PI), 84) *
+        (Math.atan2(
+          14 + 1.5 * Math.PI * Math.cos(progress * Math.PI),
+          84
+        ) *
           -180) /
-        Math.PI;
-      boat.style.setProperty("--boat-angle", `${curveAngle}deg`);
-    };
+        Math.PI
+
+      boat.style.setProperty(
+        "--boat-angle",
+        `${curveAngle}deg`
+      )
+    }
+
     const requestUpdate = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(update);
-    };
-    update();
-    addEventListener("scroll", requestUpdate, { passive: true });
-    addEventListener("resize", requestUpdate);
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(update)
+    }
+
+    update()
+
+    addEventListener("scroll", requestUpdate, { passive: true })
+    addEventListener("resize", requestUpdate)
+
     return () => {
-      cancelAnimationFrame(frame);
-      removeEventListener("scroll", requestUpdate);
-      removeEventListener("resize", requestUpdate);
-    };
-  }, []);
+      cancelAnimationFrame(frame)
+      removeEventListener("scroll", requestUpdate)
+      removeEventListener("resize", requestUpdate)
+    }
+  }, [])
 
   return (
     <section
       ref={sectionRef}
       id="about"
-      className="odyssey-call-section relative isolate overflow-hidden"
+      className={`odyssey-call-section relative isolate overflow-hidden ${
+  isVisible ? 'about-visible' : ''
+      }`}
       data-theme="dark"
       data-revealed={revealed}
       aria-labelledby="odyssey-call-title"
@@ -216,6 +271,17 @@ export function About() {
           <path d="M-80 334C80 276 190 392 350 334s270-58 430 0 270 58 430 0 270-58 430 0" />
         </svg>
       </div>
+      <div className="about-island-container">
+        <img
+         src={islandImage}
+         className="about-island-image"
+         alt=""
+         aria-hidden="true"
+        />
+
+       
+    <div className="section-inner odyssey-call-inner relative flex flex-col items-center text-center"></div>
+
       <div className="section-inner odyssey-call-inner relative flex flex-col items-center text-center">
         <h2
           id="odyssey-call-title"
@@ -240,7 +306,30 @@ export function About() {
             </li>
           ))}
         </ul>
-      </div>
-    </section>
-  );
+
+</div>
+</div> {/* closes about-island-container */}
+ {/* closes section-inner */}
+
+
+{/* Decorative sea waves */}
+<div className="about-waves">
+  <Waves tone="clay" />
+</div>
+
+
+{/* Interactive Odyssey ship */}
+<div
+  className={`about-ship ${sailing ? 'sailing' : ''}`}
+  onClick={() => setSailing((prev) => !prev)}
+>
+  <Ship rowing={true} tone="clay" />
+</div>
+  <div className="about-waves about-waves-front">
+  <Waves tone="clay" />
+</div>
+
+
+</section>
+  )
 }
