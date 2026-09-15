@@ -1,4 +1,7 @@
 {
+  "rewrites": [
+    { "source": "/register", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",

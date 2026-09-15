@@ -1,11 +1,20 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import App from './App'
+import RegisterPage from './pages/Register/RegisterPage'
 import './styles/index.css'
 
 const root = document.getElementById('root')
 if (!root) throw new Error('Missing #root element')
 
 ReactDOM.createRoot(root).render(
-  <React.StrictMode><App /></React.StrictMode>,
+  <React.StrictMode>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route path="/register" element={<RegisterPage />} />
+      </Routes>
+    </BrowserRouter>
+  </React.StrictMode>,
 )
