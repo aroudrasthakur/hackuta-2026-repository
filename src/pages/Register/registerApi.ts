@@ -1,3 +1,6 @@
+// Use mock API for testing without vercel dev
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true';
+
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, {
     method: "POST",
@@ -11,14 +14,28 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return data as T;
 }
 
-export function sendVerificationCode(email: string) {
+async function sendVerificationCode(email: string) {
+  if (USE_MOCK) {
+    const mockApi = await import("./registerApi.mock");
+    return mockApi.sendVerificationCode(email);
+  }
   return postJson<{ ok: true }>("/api/send-code", { email });
 }
 
-export function verifyCode(email: string, code: string) {
+async function verifyCode(email: string, code: string) {
+  if (USE_MOCK) {
+    const mockApi = await import("./registerApi.mock");
+    return mockApi.verifyCode(email, code);
+  }
   return postJson<{ token: string }>("/api/verify-code", { email, code });
 }
 
-export function submitRegistration(payload: Record<string, unknown>) {
+async function submitRegistration(payload: Record<string, unknown>) {
+  if (USE_MOCK) {
+    const mockApi = await import("./registerApi.mock");
+    return mockApi.submitRegistration(payload);
+  }
   return postJson<{ ok: true }>("/api/register", payload);
 }
+
+export { sendVerificationCode, verifyCode, submitRegistration };
