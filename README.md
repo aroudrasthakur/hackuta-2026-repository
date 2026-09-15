@@ -29,3 +29,11 @@ npm run dev
 ```
 
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173).
+
+## Database design
+
+The initial [Convex schema](convex/schema.ts) covers accounts, registrations,
+staff permissions, and points history. See the [schema design](docs/database-schema.md)
+for relationships, tradeoffs, and rules required in future backend functions.
+This is a local schema only; no Convex deployment or authentication is configured.
+Run `npm run typecheck` to check the schema alongside the frontend.
