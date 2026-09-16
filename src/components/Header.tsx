@@ -164,7 +164,6 @@ export function Header() {
                 {link.label}
               </a>
             ))}
-            <a href="/register">Apply</a>
           </nav>
         </div>
         <nav
