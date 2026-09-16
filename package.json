@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc -b --pretty false",
-    "lint": "eslint src",
+    "lint": "eslint src convex",
     "assets": "node scripts/prepare-assets.mjs",
     "qa:mcp": "node scripts/qa-mcp.mjs",
     "test:e2e": "playwright test"
