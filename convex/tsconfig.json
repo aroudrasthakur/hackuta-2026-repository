@@ -20,6 +20,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["./**/*"],
+  "include": ["./**/*", "../shared/**/*"],
   "exclude": ["./_generated"]
 }

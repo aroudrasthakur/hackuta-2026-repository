@@ -1,208 +1,87 @@
-import { useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent } from "react";
+import { OdysseyButton } from "../../components/OdysseyButton";
 import {
   DIETARY_OPTIONS,
+  FIELD_LIMITS,
   GENDERS,
   HEAR_ABOUT_OPTIONS,
   LEVELS_OF_STUDY,
+  MAX_GRADUATION_YEAR,
+  MIN_GRADUATION_YEAR,
+  MLH_CODE_OF_CONDUCT_URL,
+  MLH_PRIVACY_POLICY_URL,
   RACE_ETHNICITY_OPTIONS,
   TSHIRT_SIZES,
-} from "../../constants/application";
+} from "./constants";
+import {
+  FieldError,
+  SelectField,
+  TextField,
+  fieldClass,
+  fieldsetErrorClass,
+  inputClass,
+  labelClass,
+  legendClass,
+} from "./components/FormFields";
 import { submitRegistration } from "./registerApi";
+import type { ApplicationFormData, FieldName } from "../../../shared/registration/types";
+import { INITIAL_FORM } from "../../../shared/registration/types";
+import {
+  focusFirstInvalidField,
+  toggleValue,
+  validateApplicationForm,
+  type FieldErrors,
+} from "../../../shared/registration/validation";
 
-function toggleValue(values: string[], value: string): string[] {
-  return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
-}
-
-const inputClass =
-  "rounded-xl border border-(--color-ocean)/50 bg-(--color-night) px-4 py-3 text-(--color-light) outline-none focus:border-(--color-sand)";
-const inputErrorClass = "border-red-400 focus:border-red-400";
-const labelClass = "flex flex-col gap-1.5 text-sm";
-const legendClass = "text-(--color-sand)";
-const fieldsetClass = "flex flex-col gap-2 text-sm";
 const checkboxRowClass = "flex items-center gap-2 text-(--color-light)";
-const URL_PATTERN = /^https?:\/\/.+/i;
-const PHONE_PATTERN = /^[0-9+\-\s()]{7,}$/;
-
-type Errors = Record<string, string>;
-
-const FIELD_ORDER = [
-  "firstName",
-  "lastName",
-  "phone",
-  "age",
-  "school",
-  "levelOfStudy",
-  "major",
-  "graduationYear",
-  "gender",
-  "tshirtSize",
-  "firstHackathon",
-  "hearAbout",
-  "resumeUrl",
-  "linkedin",
-  "github",
-  "portfolio",
-  "emergencyContactName",
-  "emergencyContactPhone",
-  "codeOfConductAgreed",
-  "mlhDataSharingConsent",
-];
-
-function fieldClass(hasError?: string) {
-  return hasError ? `${inputClass} ${inputErrorClass}` : inputClass;
-}
+const fieldsetClass = "flex flex-col gap-2 text-sm";
 
 export function ApplicationForm({
   onSubmitted,
 }: {
   onSubmitted: () => void;
 }) {
-  const [error, setError] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Errors>({});
+  const [form, setForm] = useState<ApplicationFormData>(INITIAL_FORM);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [age, setAge] = useState("");
-  const [school, setSchool] = useState("");
-  const [levelOfStudy, setLevelOfStudy] = useState<string>("");
-  const [major, setMajor] = useState("");
-  const [graduationYear, setGraduationYear] = useState("");
-  const [gender, setGender] = useState<string>("");
-  const [raceEthnicity, setRaceEthnicity] = useState<string[]>([]);
-  const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
-  const [otherDietary, setOtherDietary] = useState("");
-  const [tshirtSize, setTshirtSize] = useState<string>("");
-  const [firstHackathon, setFirstHackathon] = useState<string>("");
-  const [hearAbout, setHearAbout] = useState<string>("");
-  const [resumeUrl, setResumeUrl] = useState("");
-  const [linkedin, setLinkedin] = useState("");
-  const [github, setGithub] = useState("");
-  const [portfolio, setPortfolio] = useState("");
-  const [accessibilityNeeds, setAccessibilityNeeds] = useState("");
-  const [emergencyContactName, setEmergencyContactName] = useState("");
-  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
-  const [codeOfConductAgreed, setCodeOfConductAgreed] = useState(false);
-  const [mlhDataSharingConsent, setMlhDataSharingConsent] = useState(false);
-  const [mlhCommunicationsConsent, setMlhCommunicationsConsent] = useState(false);
-
-  function validate(): Errors {
-    const errs: Errors = {};
-
-    if (!firstName.trim()) errs.firstName = "First name is required.";
-    if (!lastName.trim()) errs.lastName = "Last name is required.";
-
-    if (!phone.trim()) errs.phone = "Phone number is required.";
-    else if (!PHONE_PATTERN.test(phone)) errs.phone = "Enter a valid phone number.";
-
-    if (!age) errs.age = "Age is required.";
-    else {
-      const ageNum = Number(age);
-      if (Number.isNaN(ageNum) || ageNum < 18 || ageNum > 120) {
-        errs.age = "Age must be between 18 and 120.";
-      }
-    }
-
-    if (!school.trim()) errs.school = "School / university is required.";
-    if (!levelOfStudy) errs.levelOfStudy = "Please select a level of study.";
-    if (!major.trim()) errs.major = "Major / field of study is required.";
-
-    if (!graduationYear) errs.graduationYear = "Expected graduation year is required.";
-    else {
-      const gradYearNum = Number(graduationYear);
-      if (Number.isNaN(gradYearNum) || gradYearNum < 2024 || gradYearNum > 2035) {
-        errs.graduationYear = "Enter a year between 2024 and 2035.";
-      }
-    }
-
-    if (!gender) errs.gender = "Please select a gender.";
-    if (!tshirtSize) errs.tshirtSize = "Please select a t-shirt size.";
-    if (!firstHackathon) errs.firstHackathon = "Please let us know if this is your first hackathon.";
-    if (!hearAbout) errs.hearAbout = "Please select how you heard about HackUTA.";
-
-    if (resumeUrl && !URL_PATTERN.test(resumeUrl)) {
-      errs.resumeUrl = "Enter a valid URL starting with http:// or https://.";
-    }
-    if (linkedin && !URL_PATTERN.test(linkedin)) {
-      errs.linkedin = "Enter a valid URL starting with http:// or https://.";
-    }
-    if (github && !URL_PATTERN.test(github)) {
-      errs.github = "Enter a valid URL starting with http:// or https://.";
-    }
-    if (portfolio && !URL_PATTERN.test(portfolio)) {
-      errs.portfolio = "Enter a valid URL starting with http:// or https://.";
-    }
-
-    if (!emergencyContactName.trim()) {
-      errs.emergencyContactName = "Emergency contact name is required.";
-    }
-    if (!emergencyContactPhone.trim()) {
-      errs.emergencyContactPhone = "Emergency contact phone is required.";
-    } else if (!PHONE_PATTERN.test(emergencyContactPhone)) {
-      errs.emergencyContactPhone = "Enter a valid phone number.";
-    }
-
-    if (!codeOfConductAgreed) {
-      errs.codeOfConductAgreed = "You must agree to the MLH Code of Conduct to continue.";
-    }
-    if (!mlhDataSharingConsent) {
-      errs.mlhDataSharingConsent = "You must authorize sharing your info with MLH to register.";
-    }
-
-    return errs;
-  }
+  const updateField = useCallback(
+    <K extends keyof ApplicationFormData>(key: K, value: ApplicationFormData[K]) => {
+      setForm((prev) => ({ ...prev, [key]: value }));
+      setErrors((prev) => {
+        if (!prev[key as FieldName]) return prev;
+        const next = { ...prev };
+        delete next[key as FieldName];
+        return next;
+      });
+    },
+    [],
+  );
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setError(null);
+    if (submitting) return;
 
-    const validationErrors = validate();
-    setErrors(validationErrors);
+    setSubmitError(null);
 
-    if (Object.keys(validationErrors).length > 0) {
-      setError("One or more of your answers is invalid. Please review the application.");
-      const firstInvalidField = FIELD_ORDER.find((field) => validationErrors[field]);
-      if (firstInvalidField) {
-        document
-          .getElementById(firstInvalidField)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+    const validation = validateApplicationForm(form);
+
+    if (!validation.success) {
+      setErrors(validation.errors);
+      focusFirstInvalidField(validation.errors);
       return;
     }
 
+    setErrors({});
+
     setSubmitting(true);
     try {
-      await submitRegistration({
-        firstName,
-        lastName,
-        phone,
-        age: Number(age),
-        school,
-        levelOfStudy,
-        major,
-        graduationYear: Number(graduationYear),
-        gender,
-        raceEthnicity,
-        dietaryRestrictions,
-        otherDietary,
-        tshirtSize,
-        firstHackathon: firstHackathon === "yes",
-        hearAbout,
-        resumeUrl,
-        linkedin,
-        github,
-        portfolio,
-        accessibilityNeeds,
-        emergencyContactName,
-        emergencyContactPhone,
-        codeOfConductAgreed,
-        mlhDataSharingConsent,
-        mlhCommunicationsConsent,
-      });
+      await submitRegistration(validation.payload);
       onSubmitted();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      console.error("Registration submission failed", err);
+      setSubmitError("We couldn't submit your application. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -214,127 +93,124 @@ export function ApplicationForm({
         <h1 className="font-(family-name:--font-display) text-3xl text-(--color-light)">
           Tell us about yourself
         </h1>
-        <p className="mt-2 text-sm text-(--color-mist)">Your application will be saved when submitted.</p>
+        <p className="mt-2 text-sm text-(--color-mist)">
+          Fields marked <span aria-hidden="true">*</span> are required. Your application will be
+          saved when submitted.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className={labelClass} htmlFor="firstName">
-          <span className={legendClass}>First name</span>
-          <input
-            id="firstName"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            aria-invalid={!!errors.firstName}
-            className={fieldClass(errors.firstName)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="lastName">
-          <span className={legendClass}>Last name</span>
-          <input
-            id="lastName"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            aria-invalid={!!errors.lastName}
-            className={fieldClass(errors.lastName)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="phone">
-          <span className={legendClass}>Phone number</span>
-          <input
-            id="phone"
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            aria-invalid={!!errors.phone}
-            className={fieldClass(errors.phone)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="age">
-          <span className={legendClass}>Age</span>
-          <input
-            id="age"
-            type="number"
-            min={18}
-            max={120}
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            aria-invalid={!!errors.age}
-            className={fieldClass(errors.age)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="school">
-          <span className={legendClass}>School / university</span>
-          <input
-            id="school"
-            value={school}
-            onChange={(e) => setSchool(e.target.value)}
-            aria-invalid={!!errors.school}
-            className={fieldClass(errors.school)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="levelOfStudy">
-          <span className={legendClass}>Level of study</span>
-          <select
-            id="levelOfStudy"
-            value={levelOfStudy}
-            onChange={(e) => setLevelOfStudy(e.target.value)}
-            aria-invalid={!!errors.levelOfStudy}
-            className={fieldClass(errors.levelOfStudy)}
-          >
-            <option value="" disabled>
-              Select one
-            </option>
-            {LEVELS_OF_STUDY.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={labelClass} htmlFor="major">
-          <span className={legendClass}>Major / field of study</span>
-          <input
-            id="major"
-            value={major}
-            onChange={(e) => setMajor(e.target.value)}
-            aria-invalid={!!errors.major}
-            className={fieldClass(errors.major)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="graduationYear">
-          <span className={legendClass}>Expected graduation year</span>
-          <input
-            id="graduationYear"
-            type="number"
-            min={2024}
-            max={2035}
-            value={graduationYear}
-            onChange={(e) => setGraduationYear(e.target.value)}
-            aria-invalid={!!errors.graduationYear}
-            className={fieldClass(errors.graduationYear)}
-          />
-        </label>
-      </div>
-
-      <label className={labelClass} htmlFor="gender">
-        <span className={legendClass}>Gender</span>
-        <select
-          id="gender"
-          value={gender}
-          onChange={(e) => setGender(e.target.value)}
-          aria-invalid={!!errors.gender}
-          className={fieldClass(errors.gender)}
+        <TextField
+          id="firstName"
+          label="First name"
+          required
+          value={form.firstName}
+          onChange={(e) => updateField("firstName", e.target.value)}
+          autoComplete="given-name"
+          maxLength={FIELD_LIMITS.name}
+          error={errors.firstName}
+        />
+        <TextField
+          id="lastName"
+          label="Last name"
+          required
+          value={form.lastName}
+          onChange={(e) => updateField("lastName", e.target.value)}
+          autoComplete="family-name"
+          maxLength={FIELD_LIMITS.name}
+          error={errors.lastName}
+        />
+        <TextField
+          id="phone"
+          label="Phone number"
+          required
+          type="tel"
+          inputMode="tel"
+          value={form.phone}
+          onChange={(e) => updateField("phone", e.target.value)}
+          autoComplete="tel"
+          maxLength={FIELD_LIMITS.phone}
+          error={errors.phone}
+        />
+        <TextField
+          id="age"
+          label="Age"
+          required
+          type="number"
+          inputMode="numeric"
+          min={18}
+          max={120}
+          step={1}
+          value={form.age}
+          onChange={(e) => updateField("age", e.target.value)}
+          autoComplete="off"
+          error={errors.age}
+        />
+        <TextField
+          id="school"
+          label="School / university"
+          required
+          value={form.school}
+          onChange={(e) => updateField("school", e.target.value)}
+          autoComplete="organization"
+          maxLength={FIELD_LIMITS.school}
+          error={errors.school}
+        />
+        <SelectField
+          id="levelOfStudy"
+          label="Level of study"
+          required
+          value={form.levelOfStudy}
+          onChange={(e) =>
+            updateField("levelOfStudy", e.target.value as ApplicationFormData["levelOfStudy"])
+          }
+          error={errors.levelOfStudy}
         >
-          <option value="" disabled>
-            Select one
-          </option>
-          {GENDERS.map((option) => (
+          {LEVELS_OF_STUDY.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>
           ))}
-        </select>
-      </label>
+        </SelectField>
+        <TextField
+          id="major"
+          label="Major / field of study"
+          required
+          value={form.major}
+          onChange={(e) => updateField("major", e.target.value)}
+          maxLength={FIELD_LIMITS.major}
+          error={errors.major}
+        />
+        <TextField
+          id="graduationYear"
+          label="Expected graduation year"
+          required
+          type="number"
+          inputMode="numeric"
+          min={MIN_GRADUATION_YEAR}
+          max={MAX_GRADUATION_YEAR}
+          step={1}
+          value={form.graduationYear}
+          onChange={(e) => updateField("graduationYear", e.target.value)}
+          autoComplete="off"
+          error={errors.graduationYear}
+        />
+      </div>
+
+      <SelectField
+        id="gender"
+        label="Gender"
+        required
+        value={form.gender}
+        onChange={(e) => updateField("gender", e.target.value as ApplicationFormData["gender"])}
+        error={errors.gender}
+      >
+        {GENDERS.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </SelectField>
 
       <fieldset className={fieldsetClass}>
         <legend className={legendClass}>Race / ethnicity (select all that apply)</legend>
@@ -343,8 +219,10 @@ export function ApplicationForm({
             <label key={option} className={checkboxRowClass}>
               <input
                 type="checkbox"
-                checked={raceEthnicity.includes(option)}
-                onChange={() => setRaceEthnicity((prev) => toggleValue(prev, option))}
+                checked={form.raceEthnicity.includes(option)}
+                onChange={() =>
+                  updateField("raceEthnicity", toggleValue(form.raceEthnicity, option))
+                }
               />
               {option}
             </label>
@@ -352,186 +230,212 @@ export function ApplicationForm({
         </div>
       </fieldset>
 
-      <fieldset className={fieldsetClass}>
+      <fieldset className={`${fieldsetClass} ${fieldsetErrorClass(!!errors.otherDietary)}`}>
         <legend className={legendClass}>Dietary restrictions (select all that apply)</legend>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {DIETARY_OPTIONS.map((option) => (
             <label key={option} className={checkboxRowClass}>
               <input
                 type="checkbox"
-                checked={dietaryRestrictions.includes(option)}
-                onChange={() => setDietaryRestrictions((prev) => toggleValue(prev, option))}
+                checked={form.dietaryRestrictions.includes(option)}
+                onChange={() =>
+                  updateField("dietaryRestrictions", toggleValue(form.dietaryRestrictions, option))
+                }
               />
               {option}
             </label>
           ))}
         </div>
-        {dietaryRestrictions.includes("Other") && (
-          <input
-            value={otherDietary}
-            onChange={(e) => setOtherDietary(e.target.value)}
-            placeholder="Tell us more"
-            className={inputClass}
-          />
+        {form.dietaryRestrictions.includes("Other") && (
+          <>
+            <input
+              id="otherDietary"
+              value={form.otherDietary}
+              onChange={(e) => updateField("otherDietary", e.target.value)}
+              placeholder="Tell us more"
+              aria-invalid={!!errors.otherDietary}
+              aria-describedby={errors.otherDietary ? "otherDietary-error" : undefined}
+              maxLength={FIELD_LIMITS.otherDietary}
+              className={fieldClass(errors.otherDietary)}
+            />
+            <FieldError id="otherDietary-error" message={errors.otherDietary} />
+          </>
         )}
       </fieldset>
 
-      <label className={labelClass} htmlFor="tshirtSize">
-        <span className={legendClass}>T-shirt size</span>
-        <select
-          id="tshirtSize"
-          value={tshirtSize}
-          onChange={(e) => setTshirtSize(e.target.value)}
-          aria-invalid={!!errors.tshirtSize}
-          className={fieldClass(errors.tshirtSize)}
-        >
-          <option value="" disabled>
-            Select one
+      <SelectField
+        id="tshirtSize"
+        label="T-shirt size"
+        required
+        value={form.tshirtSize}
+        onChange={(e) =>
+          updateField("tshirtSize", e.target.value as ApplicationFormData["tshirtSize"])
+        }
+        error={errors.tshirtSize}
+      >
+        {TSHIRT_SIZES.map((option) => (
+          <option key={option} value={option}>
+            {option}
           </option>
-          {TSHIRT_SIZES.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
+        ))}
+      </SelectField>
 
-      <fieldset id="firstHackathon" className={fieldsetClass}>
-        <legend className={legendClass}>Is this your first hackathon?</legend>
+      <fieldset
+        className={`${fieldsetClass} ${fieldsetErrorClass(!!errors.firstHackathon)}`}
+        aria-describedby={errors.firstHackathon ? "firstHackathon-error" : undefined}
+      >
+        <legend className={legendClass}>
+          Is this your first hackathon?
+          <span aria-hidden="true"> *</span>
+        </legend>
         <div className="flex gap-4">
           <label className={checkboxRowClass}>
             <input
+              id="firstHackathon-yes"
               type="radio"
               name="firstHackathon"
-              checked={firstHackathon === "yes"}
-              onChange={() => setFirstHackathon("yes")}
+              checked={form.firstHackathon === true}
+              onChange={() => updateField("firstHackathon", true)}
             />
             Yes
           </label>
           <label className={checkboxRowClass}>
             <input
+              id="firstHackathon-no"
               type="radio"
               name="firstHackathon"
-              checked={firstHackathon === "no"}
-              onChange={() => setFirstHackathon("no")}
+              checked={form.firstHackathon === false}
+              onChange={() => updateField("firstHackathon", false)}
             />
             No
           </label>
         </div>
+        <FieldError id="firstHackathon-error" message={errors.firstHackathon} />
       </fieldset>
 
-      <label className={labelClass} htmlFor="hearAbout">
-        <span className={legendClass}>How did you hear about HackUTA?</span>
-        <select
-          id="hearAbout"
-          value={hearAbout}
-          onChange={(e) => setHearAbout(e.target.value)}
-          aria-invalid={!!errors.hearAbout}
-          className={fieldClass(errors.hearAbout)}
-        >
-          <option value="" disabled>
-            Select one
+      <SelectField
+        id="hearAbout"
+        label="How did you hear about HackUTA?"
+        required
+        value={form.hearAbout}
+        onChange={(e) =>
+          updateField("hearAbout", e.target.value as ApplicationFormData["hearAbout"])
+        }
+        error={errors.hearAbout}
+      >
+        {HEAR_ABOUT_OPTIONS.map((option) => (
+          <option key={option} value={option}>
+            {option}
           </option>
-          {HEAR_ABOUT_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
+        ))}
+      </SelectField>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className={labelClass} htmlFor="resumeUrl">
-          <span className={legendClass}>Resume link (optional)</span>
-          <input
-            id="resumeUrl"
-            type="url"
-            value={resumeUrl}
-            onChange={(e) => setResumeUrl(e.target.value)}
-            placeholder="https://"
-            aria-invalid={!!errors.resumeUrl}
-            className={fieldClass(errors.resumeUrl)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="linkedin">
-          <span className={legendClass}>LinkedIn (optional)</span>
-          <input
-            id="linkedin"
-            type="url"
-            value={linkedin}
-            onChange={(e) => setLinkedin(e.target.value)}
-            placeholder="https://"
-            aria-invalid={!!errors.linkedin}
-            className={fieldClass(errors.linkedin)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="github">
-          <span className={legendClass}>GitHub (optional)</span>
-          <input
-            id="github"
-            type="url"
-            value={github}
-            onChange={(e) => setGithub(e.target.value)}
-            placeholder="https://"
-            aria-invalid={!!errors.github}
-            className={fieldClass(errors.github)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="portfolio">
-          <span className={legendClass}>Portfolio (optional)</span>
-          <input
-            id="portfolio"
-            type="url"
-            value={portfolio}
-            onChange={(e) => setPortfolio(e.target.value)}
-            placeholder="https://"
-            aria-invalid={!!errors.portfolio}
-            className={fieldClass(errors.portfolio)}
-          />
-        </label>
+        <TextField
+          id="resumeUrl"
+          label="Resume link (optional)"
+          type="url"
+          value={form.resumeUrl}
+          onChange={(e) => updateField("resumeUrl", e.target.value)}
+          placeholder="https://"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={FIELD_LIMITS.url}
+          error={errors.resumeUrl}
+        />
+        <TextField
+          id="linkedin"
+          label="LinkedIn (optional)"
+          type="url"
+          value={form.linkedin}
+          onChange={(e) => updateField("linkedin", e.target.value)}
+          placeholder="https://"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={FIELD_LIMITS.url}
+          error={errors.linkedin}
+        />
+        <TextField
+          id="github"
+          label="GitHub (optional)"
+          type="url"
+          value={form.github}
+          onChange={(e) => updateField("github", e.target.value)}
+          placeholder="https://"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={FIELD_LIMITS.url}
+          error={errors.github}
+        />
+        <TextField
+          id="portfolio"
+          label="Portfolio (optional)"
+          type="url"
+          value={form.portfolio}
+          onChange={(e) => updateField("portfolio", e.target.value)}
+          placeholder="https://"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={FIELD_LIMITS.url}
+          error={errors.portfolio}
+        />
       </div>
 
       <label className={labelClass}>
         <span className={legendClass}>Accessibility needs or accommodations (optional)</span>
-        <textarea value={accessibilityNeeds} onChange={(e) => setAccessibilityNeeds(e.target.value)} rows={2} className={inputClass} />
+        <textarea
+          value={form.accessibilityNeeds}
+          onChange={(e) => updateField("accessibilityNeeds", e.target.value)}
+          rows={2}
+          maxLength={FIELD_LIMITS.accessibilityNeeds}
+          className={inputClass}
+        />
       </label>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className={labelClass} htmlFor="emergencyContactName">
-          <span className={legendClass}>Emergency contact name</span>
-          <input
-            id="emergencyContactName"
-            value={emergencyContactName}
-            onChange={(e) => setEmergencyContactName(e.target.value)}
-            aria-invalid={!!errors.emergencyContactName}
-            className={fieldClass(errors.emergencyContactName)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="emergencyContactPhone">
-          <span className={legendClass}>Emergency contact phone</span>
-          <input
-            id="emergencyContactPhone"
-            type="tel"
-            value={emergencyContactPhone}
-            onChange={(e) => setEmergencyContactPhone(e.target.value)}
-            aria-invalid={!!errors.emergencyContactPhone}
-            className={fieldClass(errors.emergencyContactPhone)}
-          />
-        </label>
+        <TextField
+          id="emergencyContactName"
+          label="Emergency contact name"
+          required
+          value={form.emergencyContactName}
+          onChange={(e) => updateField("emergencyContactName", e.target.value)}
+          maxLength={FIELD_LIMITS.name}
+          error={errors.emergencyContactName}
+        />
+        <TextField
+          id="emergencyContactPhone"
+          label="Emergency contact phone"
+          required
+          type="tel"
+          inputMode="tel"
+          value={form.emergencyContactPhone}
+          onChange={(e) => updateField("emergencyContactPhone", e.target.value)}
+          maxLength={FIELD_LIMITS.phone}
+          error={errors.emergencyContactPhone}
+        />
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-(--color-ocean)/40 p-4 text-sm">
+      <div
+        className={`flex flex-col gap-3 rounded-xl border p-4 text-sm ${
+          errors.codeOfConductAgreed || errors.mlhDataSharingConsent
+            ? "border-red-400"
+            : "border-(--color-ocean)/40"
+        }`}
+      >
         <div className="flex flex-col gap-1">
           <label className={checkboxRowClass} htmlFor="codeOfConductAgreed">
             <input
               id="codeOfConductAgreed"
               type="checkbox"
-              checked={codeOfConductAgreed}
-              onChange={(e) => setCodeOfConductAgreed(e.target.checked)}
+              required
+              checked={form.codeOfConductAgreed}
+              onChange={(e) => updateField("codeOfConductAgreed", e.target.checked)}
+              aria-invalid={!!errors.codeOfConductAgreed}
+              aria-describedby={errors.codeOfConductAgreed ? "codeOfConductAgreed-error" : undefined}
             />
             I have read and agree to the{" "}
             <a
-              href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf"
+              href={MLH_CODE_OF_CONDUCT_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="underline underline-offset-4"
@@ -540,43 +444,61 @@ export function ApplicationForm({
             </a>
             .
           </label>
+          <FieldError id="codeOfConductAgreed-error" message={errors.codeOfConductAgreed} />
         </div>
         <div className="flex flex-col gap-1">
           <label className={checkboxRowClass} htmlFor="mlhDataSharingConsent">
             <input
               id="mlhDataSharingConsent"
               type="checkbox"
-              checked={mlhDataSharingConsent}
-              onChange={(e) => setMlhDataSharingConsent(e.target.checked)}
+              required
+              checked={form.mlhDataSharingConsent}
+              onChange={(e) => updateField("mlhDataSharingConsent", e.target.checked)}
+              aria-invalid={!!errors.mlhDataSharingConsent}
+              aria-describedby={
+                errors.mlhDataSharingConsent ? "mlhDataSharingConsent-error" : undefined
+              }
             />
             I authorize HackUTA to share my registration information with Major League Hacking for
-            event administration, ranking, and MLH administration in-line with the MLH Privacy Policy.
+            event administration, ranking, and MLH administration in-line with the{" "}
+            <a
+              href={MLH_PRIVACY_POLICY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4"
+            >
+              MLH Privacy Policy
+            </a>
+            .
           </label>
+          <FieldError id="mlhDataSharingConsent-error" message={errors.mlhDataSharingConsent} />
         </div>
         <label className={checkboxRowClass}>
           <input
             type="checkbox"
-            checked={mlhCommunicationsConsent}
-            onChange={(e) => setMlhCommunicationsConsent(e.target.checked)}
+            checked={form.mlhCommunicationsConsent}
+            onChange={(e) => updateField("mlhCommunicationsConsent", e.target.checked)}
           />
           I authorize MLH to send me occasional emails about relevant events, career opportunities,
           and community announcements (optional).
         </label>
       </div>
 
-      {error && (
+      {Object.keys(errors).length > 0 && (
         <p role="alert" className="text-sm text-red-300">
-          {error}
+          One or more of your answers is invalid. Please review the fields below.
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="rounded-full bg-(--color-sand) px-6 py-3 font-semibold text-(--color-ink) transition hover:opacity-90 disabled:opacity-60"
-      >
+      {submitError && (
+        <p role="alert" className="text-sm text-red-300">
+          {submitError}
+        </p>
+      )}
+
+      <OdysseyButton type="submit" disabled={submitting}>
         {submitting ? "Submitting…" : "Submit application"}
-      </button>
+      </OdysseyButton>
     </form>
   );
 }

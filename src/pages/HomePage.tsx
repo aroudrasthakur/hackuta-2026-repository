@@ -1,17 +1,17 @@
-import { Header } from "./components/Header";
-import CustomCursor from "./components/cursor/CustomCursor";
-import { Hero } from "./components/Hero";
-import { About } from "./components/About";
-import { Schedule } from "./components/Schedule";
-import { FAQ } from "./components/FAQ";
-import { Sponsors } from "./components/Sponsors";
-import { Footer } from "./components/Footer";
-import { HeatWaveDefs } from "./components/art/HeatWave";
-import { useMotionPreference } from "./hooks/useMotionPreference";
 import { useEffect } from "react";
-import { scrollToSection } from "./utils/scrollToSection";
+import { Header } from "../components/Header";
+import CustomCursor from "../components/cursor/CustomCursor";
+import { Hero } from "../components/Hero";
+import { About } from "../components/About";
+import { Schedule } from "../components/Schedule";
+import { FAQ } from "../components/FAQ";
+import { Sponsors } from "../components/Sponsors";
+import { Footer } from "../components/Footer";
+import { HeatWaveDefs } from "../components/art/HeatWave";
+import { useMotionPreference } from "../hooks/useMotionPreference";
+import { scrollToSection } from "../utils/scrollToSection";
 
-export default function App() {
+export default function HomePage() {
   const { motionEnabled } = useMotionPreference();
 
   useEffect(() => {
