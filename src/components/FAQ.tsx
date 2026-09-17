@@ -36,7 +36,7 @@ const questions = [
   {
     question: "Can I start on my project early?",
     answer:
-      "You can brainstorm and explore public resources ahead of time, but all code, design assets, and build work must be created during the official hacking window from noon Oct 4 to noon Oct 5. Using open source libraries or templates is fine as long as you start fresh and give credit.",
+      "You can brainstorm and explore public resources ahead of time, but all code, design assets, and build work must be created during the official hacking window from noon Nov 14 to noon Nov 15. Using open source libraries or templates is fine as long as you start fresh and give credit.",
   },
   {
     question: "How does judging and prizes work?",
@@ -79,7 +79,10 @@ export function FAQ({ motionEnabled }: { motionEnabled: boolean }) {
       data-theme="clay"
       aria-labelledby="oracle-title"
     >
-      <ThemeArt name="temple" className="oracle-art-temple theme-art--on-light" />
+      <ThemeArt
+        name="temple"
+        className="oracle-art-temple theme-art--on-light"
+      />
       <div className="section-inner oracle-layout grid">
         <div className="oracle-intro">
           <h2 id="oracle-title" className="font-semibold uppercase">
