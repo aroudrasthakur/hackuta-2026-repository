@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('event content and navigation are honest and complete', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
   await expect(page).toHaveTitle(/HackUTA 2026/)
   await expect(page.getByRole('heading', { level: 1 })).toContainText('HackUTA')
@@ -86,6 +87,17 @@ test('the opening ship drifts across the center of the viewport', async ({ page 
   await expect(hero.locator('.od-lightning')).toHaveCount(2)
   await expect(hero.locator('.od-wave-surface')).toHaveCount(1)
 
+  const setDriftTime = async (time: number) => {
+    await ship.evaluate((element, currentTime) => {
+      const [animation] = element.getAnimations()
+      if (!animation) throw new Error('Ship drift animation is missing')
+      animation.pause()
+      animation.currentTime = currentTime
+    }, time)
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+  }
+
+  await setDriftTime(0)
   const centerAtStart = await ship.evaluate(element => {
     const box = element.getBoundingClientRect()
     return box.left + box.width / 2
@@ -93,8 +105,7 @@ test('the opening ship drifts across the center of the viewport', async ({ page 
   expect(centerAtStart).toBeGreaterThan(1440 * 0.36)
   expect(centerAtStart).toBeLessThan(1440 * 0.44)
 
-  await page.waitForTimeout(14500)
-
+  await setDriftTime(14000)
   const centerAfterDrift = await ship.evaluate(element => {
     const box = element.getBoundingClientRect()
     return box.left + box.width / 2
