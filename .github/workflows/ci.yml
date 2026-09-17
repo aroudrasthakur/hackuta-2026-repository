@@ -39,6 +39,9 @@ jobs:
       - name: Typecheck application, tests, and Convex schema
         run: npm run typecheck
 
+      - name: Run unit tests with coverage
+        run: npm run test:unit:coverage
+
       - name: Build production application
         run: npm run build
 

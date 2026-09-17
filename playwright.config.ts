@@ -5,6 +5,7 @@ const baseURL = useProductionBuild ? 'http://127.0.0.1:4174' : 'http://127.0.0.1
 
 export default defineConfig({
   testDir: './tests',
+  testIgnore: ['**/unit/**'],
   fullyParallel: true,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: { baseURL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
