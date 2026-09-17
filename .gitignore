@@ -12,3 +12,4 @@ playwright-report/
 .playwright-mcp/
 design/
 .next/
+convex/_generated/
