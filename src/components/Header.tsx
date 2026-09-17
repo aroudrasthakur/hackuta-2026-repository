@@ -358,6 +358,21 @@ export function Header() {
               </span>
             </a>
           ))}
+          <a href="/register">
+            <span>0{PRIMARY_NAV_LINKS.length + 1}</span>
+            Apply
+            <span className="mobile-nav-arrow" aria-hidden="true">
+              <svg viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M3 13L13 3M13 3H6M13 3V10"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </a>
         </nav>
       </header>
     </>

@@ -1,9 +1,12 @@
-import type { ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 type OdysseyButtonProps = {
   href?: string;
   children: ReactNode;
   inactive?: boolean;
+  disabled?: boolean;
+  type?: ButtonHTMLAttributes<HTMLButtonElement>["type"];
   className?: string;
 };
 
@@ -11,34 +14,50 @@ export function OdysseyButton({
   href,
   children,
   inactive = false,
+  disabled = false,
+  type = "button",
   className,
 }: OdysseyButtonProps) {
   const classes = ["odyssey-btn", className].filter(Boolean).join(" ");
+  const isDisabled = inactive || disabled;
 
-  if (inactive) {
+  if (href && !isDisabled) {
+    if (href.startsWith("http")) {
+      return (
+        <a
+          className={classes}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {children}
+        </a>
+      );
+    }
+
+    if (href.startsWith("/")) {
+      return (
+        <Link className={classes} to={href}>
+          {children}
+        </Link>
+      );
+    }
+
     return (
-      <button
-        type="button"
-        className={classes}
-        disabled
-        aria-disabled="true"
-      >
+      <a className={classes} href={href}>
         {children}
-      </button>
+      </a>
     );
   }
 
-  const external = href?.startsWith("http");
-
   return (
-    <a
+    <button
+      type={type}
       className={classes}
-      href={href}
-      {...(external
-        ? { target: "_blank", rel: "noopener noreferrer" }
-        : undefined)}
+      disabled={isDisabled}
+      aria-disabled={isDisabled || undefined}
     >
       {children}
-    </a>
+    </button>
   );
 }
