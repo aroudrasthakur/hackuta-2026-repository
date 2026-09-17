@@ -9,14 +9,12 @@ async function upsertRegistration(
   status: "draft" | "submitted",
 ) {
   const userId = `mock-user:${data.firstName.toLowerCase()}-${data.lastName.toLowerCase()}-${data.phone.replace(/\D/g, "")}`;
-  const hackathonId = data.hackathonId;
+  const { hackathonId, ...answers } = data;
 
   const existing = await ctx.db
     .query("registrations")
     .withIndex("by_user_hackathon", (q) => q.eq("userId", userId).eq("hackathonId", hackathonId))
     .first();
-
-  const { hackathonId, ...answers } = data;
 
   if (existing) {
     await ctx.db.patch(existing._id, {
