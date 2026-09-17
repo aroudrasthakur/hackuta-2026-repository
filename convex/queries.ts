@@ -11,7 +11,7 @@ export const getUserByEmail = query({
     
     return await ctx.db
       .query("users")
-      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", normalized))
+      .withIndex("email", (q) => q.eq("email", normalized))
       .first() || null;
   },
 });
@@ -20,7 +20,7 @@ export const getUserByEmail = query({
  * Get all registrations for a user.
  */
 export const getRegistrationsByUser = query({
-  args: { userId: v.id("users") },
+  args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
     return await ctx.db
       .query("registrations")
@@ -43,7 +43,7 @@ export const getRegistration = query({
  * Get all registrations for a hackathon (admin view).
  */
 export const getRegistrationsByHackathon = query({
-  args: { hackathonId: v.id("hackathons") },
+  args: { hackathonId: v.string() },
   handler: async (ctx, { hackathonId }) => {
     return await ctx.db
       .query("registrations")

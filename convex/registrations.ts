@@ -1,95 +1,96 @@
-import { mutation } from "./_generated/server";
+import { mutation, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
-import { registrationAnswers } from "./registrationAnswers";
 
-/**
- * Submit a registration for a hackathon.
- * Assumes user already exists.
- */
-export const submitRegistration = mutation({
-  args: {
-    userId: v.id("users"),
-    hackathonId: v.id("hackathons"),
-    answers: registrationAnswers,
-  },
-  handler: async (ctx, { userId, hackathonId, answers }) => {
-    // Check for duplicate submission
-    const existing = await ctx.db
-      .query("registrations")
-      .withIndex("by_user_hackathon", (q) => 
-        q.eq("userId", userId).eq("hackathonId", hackathonId)
-      )
-      .first();
+function normalizeAnswers(data: Record<string, unknown>) {
+  const result: Record<string, unknown> = {
+    firstName: data.firstName,
+    lastName: data.lastName,
+    phone: data.phone,
+    age: typeof data.age === "number" ? data.age : undefined,
+    school: data.school,
+    levelOfStudy: data.levelOfStudy,
+    major: data.major,
+    graduationYear: typeof data.graduationYear === "number" ? data.graduationYear : undefined,
+    gender: data.gender,
+    raceEthnicity: Array.isArray(data.raceEthnicity) ? data.raceEthnicity : undefined,
+    dietaryRestrictions: Array.isArray(data.dietaryRestrictions) ? data.dietaryRestrictions : undefined,
+    otherDietary: data.otherDietary,
+    tshirtSize: data.tshirtSize,
+    firstHackathon: typeof data.firstHackathon === "boolean" ? data.firstHackathon : undefined,
+    hearAbout: data.hearAbout,
+    resumeUrl: data.resumeUrl,
+    linkedin: data.linkedin,
+    github: data.github,
+    portfolio: data.portfolio,
+    accessibilityNeeds: data.accessibilityNeeds,
+    emergencyContactName: data.emergencyContactName,
+    emergencyContactPhone: data.emergencyContactPhone,
+    codeOfConductAgreed: typeof data.codeOfConductAgreed === "boolean" ? data.codeOfConductAgreed : undefined,
+    mlhDataSharingConsent: typeof data.mlhDataSharingConsent === "boolean" ? data.mlhDataSharingConsent : undefined,
+    mlhCommunicationsConsent: typeof data.mlhCommunicationsConsent === "boolean" ? data.mlhCommunicationsConsent : undefined,
+    email: data.email,
+  };
 
-    if (existing && existing.status !== "draft") {
-      throw new Error("You have already submitted a registration for this hackathon");
-    }
+  return Object.fromEntries(
+    Object.entries(result).filter(([, value]) => value !== undefined),
+  );
+}
 
-    if (existing) {
-      // Update existing draft
-      await ctx.db.patch(existing._id, {
-        answers,
-        status: "submitted",
-        submittedAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-      console.log(`✓ Updated registration for user ${userId}`);
-      return { registrationId: existing._id, isNew: false };
-    }
+async function upsertRegistration(
+  ctx: MutationCtx,
+  data: Record<string, unknown>,
+  status: "draft" | "submitted",
+) {
+  const payload = data ?? {};
+  const userId = typeof payload.userId === "string" ? payload.userId : `mock-user:${String(payload.email ?? "anonymous")}`;
+  const hackathonId = typeof payload.hackathonId === "string" ? payload.hackathonId : "hackuta-2026";
+  const answers = normalizeAnswers(payload);
 
-    // Create new registration
-    const registrationId = await ctx.db.insert("registrations", {
-      userId,
-      hackathonId,
-      status: "submitted",
-      eligibilityStatus: "unreviewed",
-      answers,
-      submittedAt: Date.now(),
+  const existing = await ctx.db
+    .query("registrations")
+    .withIndex("by_user_hackathon", (q) => q.eq("userId", userId).eq("hackathonId", hackathonId))
+    .first();
+
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      answers: answers as never,
+      status,
+      submittedAt: status === "submitted" ? Date.now() : undefined,
       updatedAt: Date.now(),
     });
+    return { registrationId: existing._id, isNew: false, ok: true };
+  }
 
-    console.log(`✓ Created registration ${registrationId} for user ${userId}`);
-    return { registrationId, isNew: true };
+  const registrationId = await ctx.db.insert("registrations", {
+    userId,
+    hackathonId,
+    status,
+    eligibilityStatus: "unreviewed",
+    answers: answers as never,
+    submittedAt: status === "submitted" ? Date.now() : undefined,
+    updatedAt: Date.now(),
+  });
+
+  return { registrationId, isNew: true, ok: true };
+}
+
+export const register = mutation({
+  args: {
+    data: v.any(),
   },
+  handler: async (ctx, { data }) => upsertRegistration(ctx, data as Record<string, unknown>, "submitted"),
 });
 
-/**
- * Save a draft registration (optional autosave feature).
- */
+export const submitRegistration = mutation({
+  args: {
+    data: v.any(),
+  },
+  handler: async (ctx, { data }) => upsertRegistration(ctx, data as Record<string, unknown>, "submitted"),
+});
+
 export const saveDraft = mutation({
   args: {
-    userId: v.id("users"),
-    hackathonId: v.id("hackathons"),
-    answers: registrationAnswers,
+    data: v.any(),
   },
-  handler: async (ctx, { userId, hackathonId, answers }) => {
-    // Check if draft exists
-    const existing = await ctx.db
-      .query("registrations")
-      .withIndex("by_user_hackathon", (q) => 
-        q.eq("userId", userId).eq("hackathonId", hackathonId)
-      )
-      .first();
-
-    if (existing) {
-      // Update existing
-      await ctx.db.patch(existing._id, {
-        answers,
-        updatedAt: Date.now(),
-      });
-      return { registrationId: existing._id, isNew: false };
-    }
-
-    // Create new draft
-    const registrationId = await ctx.db.insert("registrations", {
-      userId,
-      hackathonId,
-      status: "draft",
-      eligibilityStatus: "unreviewed",
-      answers,
-      updatedAt: Date.now(),
-    });
-
-    return { registrationId, isNew: true };
-  },
+  handler: async (ctx, { data }) => upsertRegistration(ctx, data as Record<string, unknown>, "draft"),
 });

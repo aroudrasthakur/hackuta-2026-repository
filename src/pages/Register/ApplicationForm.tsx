@@ -53,12 +53,8 @@ function fieldClass(hasError?: string) {
 }
 
 export function ApplicationForm({
-  email,
-  token,
   onSubmitted,
 }: {
-  email: string;
-  token: string;
   onSubmitted: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -178,8 +174,6 @@ export function ApplicationForm({
     setSubmitting(true);
     try {
       await submitRegistration({
-        token,
-        email,
         firstName,
         lastName,
         phone,
@@ -220,9 +214,7 @@ export function ApplicationForm({
         <h1 className="font-(family-name:--font-display) text-3xl text-(--color-light)">
           Tell us about yourself
         </h1>
-        <p className="mt-2 text-sm text-(--color-mist)">
-          Signed in as <span className="text-(--color-sand)">{email}</span>
-        </p>
+        <p className="mt-2 text-sm text-(--color-mist)">Your application will be saved when submitted.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
