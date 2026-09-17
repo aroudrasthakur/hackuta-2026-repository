@@ -50,33 +50,3 @@ export const HEAR_ABOUT_OPTIONS = [
   "Previous HackUTA",
   "Other",
 ] as const;
-
-export interface RegistrationPayload {
-  token: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  age: number;
-  school: string;
-  levelOfStudy: (typeof LEVELS_OF_STUDY)[number];
-  major: string;
-  graduationYear: number;
-  gender: (typeof GENDERS)[number];
-  raceEthnicity: string[];
-  dietaryRestrictions: string[];
-  otherDietary: string;
-  tshirtSize: (typeof TSHIRT_SIZES)[number];
-  firstHackathon: boolean;
-  hearAbout: (typeof HEAR_ABOUT_OPTIONS)[number];
-  resumeUrl: string;
-  linkedin: string;
-  github: string;
-  portfolio: string;
-  accessibilityNeeds: string;
-  emergencyContactName: string;
-  emergencyContactPhone: string;
-  codeOfConductAgreed: boolean;
-  mlhDataSharingConsent: boolean;
-  mlhCommunicationsConsent: boolean;
-}
