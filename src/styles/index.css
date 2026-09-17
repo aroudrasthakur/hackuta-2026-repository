@@ -139,7 +139,7 @@
   }
 
   .site-header[data-theme="dark"] .header-pill-nav {
-    background: color-mix(in srgb, var(--night) 52%, transparent);
+    background: var(--night);
     border-color: color-mix(in srgb, var(--sand) 72%, transparent);
   }
 
