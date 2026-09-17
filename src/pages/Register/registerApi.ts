@@ -27,8 +27,39 @@ async function callConvexMutation<T>(
   return (data.value ?? data) as T;
 }
 
+async function callConvexQuery<T>(
+  path: string,
+  args: Record<string, unknown>,
+): Promise<T> {
+  if (!CONVEX_URL) {
+    throw new Error(SUBMIT_ERROR_MESSAGE);
+  }
+
+  const response = await fetch(`${CONVEX_URL}/api/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, args }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data.status === "error") {
+    throw new Error(SUBMIT_ERROR_MESSAGE);
+  }
+
+  return (data.value ?? data) as T;
+}
+
 async function submitRegistration(payload: RegistrationPayload) {
   return callConvexMutation<{ ok: true }>("registrations:register", { data: payload });
 }
 
-export { submitRegistration };
+async function getRegistrationByEmail(email: string, hackathonId: string) {
+  return callConvexQuery<unknown | null>("queries:getRegistrationByEmail", {
+    email,
+    hackathonId,
+  });
+}
+
+export { submitRegistration, getRegistrationByEmail };
+

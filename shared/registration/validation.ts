@@ -24,6 +24,7 @@ function zodErrorToFieldErrors(error: ZodError): FieldErrors {
 
 function buildRegistrationCandidate(form: ApplicationFormData) {
   return {
+    email: form.email,
     firstName: form.firstName,
     lastName: form.lastName,
     phone: form.phone,

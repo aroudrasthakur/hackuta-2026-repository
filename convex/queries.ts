@@ -40,6 +40,24 @@ export const getRegistration = query({
 });
 
 /**
+ * Find a submitted registration by the applicant's email (for the profile
+ * "signed in" check — there is no real auth yet, so this is best-effort).
+ */
+export const getRegistrationByEmail = query({
+  args: { email: v.string(), hackathonId: v.string() },
+  handler: async (ctx, { email, hackathonId }) => {
+    const normalized = email.toLowerCase().trim();
+
+    const registrations = await ctx.db
+      .query("registrations")
+      .withIndex("by_hackathon_status", (q) => q.eq("hackathonId", hackathonId))
+      .collect();
+
+    return registrations.find((r) => r.answers.email?.toLowerCase() === normalized) ?? null;
+  },
+});
+
+/**
  * Get all registrations for a hackathon (admin view).
  */
 export const getRegistrationsByHackathon = query({

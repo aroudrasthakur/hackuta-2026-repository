@@ -17,6 +17,7 @@ export type TshirtSize = (typeof TSHIRT_SIZES)[number];
 export type HearAboutOption = (typeof HEAR_ABOUT_OPTIONS)[number];
 
 export type ApplicationFormData = {
+  email: string;
   firstName: string;
   lastName: string;
   phone: string;
@@ -49,6 +50,7 @@ export type RegistrationPayload = z.infer<typeof registrationPayloadSchema>;
 export type FieldName = keyof ApplicationFormData;
 
 export const FIELD_ORDER: FieldName[] = [
+  "email",
   "firstName",
   "lastName",
   "phone",
@@ -73,6 +75,7 @@ export const FIELD_ORDER: FieldName[] = [
 ];
 
 export const INITIAL_FORM: ApplicationFormData = {
+  email: "",
   firstName: "",
   lastName: "",
   phone: "",

@@ -53,6 +53,7 @@ export const HEAR_ABOUT_OPTIONS = [
 
 export const FIELD_LIMITS = {
   name: 100,
+  email: 254,
   phone: 30,
   school: 200,
   major: 200,

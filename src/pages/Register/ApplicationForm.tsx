@@ -32,6 +32,7 @@ import {
   validateApplicationForm,
   type FieldErrors,
 } from "../../../shared/registration/validation";
+import { setStoredEmail } from "../../utils/session";
 
 const checkboxRowClass = "flex items-center gap-2 text-(--color-light)";
 const fieldsetClass = "flex flex-col gap-2 text-sm";
@@ -78,6 +79,7 @@ export function ApplicationForm({
     setSubmitting(true);
     try {
       await submitRegistration(validation.payload);
+      setStoredEmail(validation.payload.email);
       onSubmitted();
     } catch (err) {
       console.error("Registration submission failed", err);
@@ -100,6 +102,17 @@ export function ApplicationForm({
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <TextField
+          id="email"
+          label="Email"
+          required
+          type="email"
+          value={form.email}
+          onChange={(e) => updateField("email", e.target.value)}
+          autoComplete="email"
+          maxLength={FIELD_LIMITS.email}
+          error={errors.email}
+        />
         <TextField
           id="firstName"
           label="First name"
