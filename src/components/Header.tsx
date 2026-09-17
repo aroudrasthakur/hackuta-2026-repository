@@ -8,9 +8,9 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState("clay");
   const [active, setActive] = useState("");
+  const [badgeHidden, setBadgeHidden] = useState(false);
   const header = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
-  const mlhBadge = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     let frame = 0;
@@ -40,13 +40,7 @@ export function Header() {
         "--mlh-badge-fade",
         String(fade),
       );
-      if (mlhBadge.current) {
-        mlhBadge.current.style.pointerEvents = fade > 0.95 ? "none" : "auto";
-        mlhBadge.current.setAttribute(
-          "aria-hidden",
-          fade > 0.95 ? "true" : "false",
-        );
-      }
+      setBadgeHidden(fade > 0.95);
     };
     const requestUpdate = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -97,14 +91,14 @@ export function Header() {
   return (
     <>
       <a
-        ref={mlhBadge}
         id="mlh-trust-badge"
         className="header-mlh-badge"
         href="https://mlh.io/na?utm_source=na-hackathon&utm_medium=TrustBadge&utm_campaign=2026-season&utm_content=gray"
         target="_blank"
         rel="noopener noreferrer"
-        aria-hidden={open}
-        tabIndex={open ? -1 : undefined}
+        aria-hidden={open || badgeHidden}
+        tabIndex={open || badgeHidden ? -1 : undefined}
+        style={{ pointerEvents: open || badgeHidden ? "none" : "auto" }}
         hidden={open}
       >
         <img
