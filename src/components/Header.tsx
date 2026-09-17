@@ -1,123 +1,280 @@
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
+
 import { Logo } from "./art/Logo";
+
 import { PRIMARY_NAV_LINKS } from "../constants/navigation";
+
 import { scrollToSection } from "../utils/scrollToSection";
 import { clamp01 } from "../utils/clamp";
 
+type HeaderTheme = "clay" | "dark";
+
+const DEFAULT_HEADER_HEIGHT = 84;
+const READING_LINE_OFFSET = 65;
+const MLH_FADE_DISTANCE = 500;
+const MLH_DISABLE_THRESHOLD = 0.95;
+const DESKTOP_BREAKPOINT = 768;
+
+function getSectionTheme(value: string | undefined): HeaderTheme | null {
+  if (value === "clay" || value === "dark") {
+    return value;
+  }
+
+  return null;
+}
+
 export function Header() {
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState("clay");
+  const [theme, setTheme] = useState<HeaderTheme>("clay");
   const [active, setActive] = useState("");
-  const header = useRef<HTMLElement>(null);
-  const menuButton = useRef<HTMLButtonElement>(null);
-  const mlhBadge = useRef<HTMLAnchorElement>(null);
+  const [badgeInactive, setBadgeInactive] = useState(false);
+
+  const headerRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    let frame = 0;
+    const header = headerRef.current;
+
+    if (!header) {
+      return;
+    }
+
+    const sections = Array.from(
+      document.querySelectorAll<HTMLElement>("main > section"),
+    );
+
+    const headerInner = header.querySelector<HTMLElement>(".header-inner");
+
+    let frame: number | null = null;
+
     const update = () => {
-      frame = 0;
-      const sections = Array.from(
-        document.querySelectorAll<HTMLElement>("main > section"),
+      frame = null;
+
+      const headerHeight = headerInner?.clientHeight ?? DEFAULT_HEADER_HEIGHT;
+
+      const readingLine = headerHeight + READING_LINE_OFFSET;
+
+      /**
+       * Read each section's geometry only once per frame.
+       */
+      const sectionRects = sections.map((section) => ({
+        section,
+        rect: section.getBoundingClientRect(),
+      }));
+
+      /**
+       * Section considered active for navigation.
+       */
+      const current = sectionRects.find(
+        ({ rect }) => rect.top <= readingLine && rect.bottom > readingLine,
       );
-      const headerHeight =
-        header.current?.querySelector(".header-inner")?.clientHeight ?? 84;
-      const readingLine = headerHeight + 65;
-      const current = sections.find((section) => {
-        const rect = section.getBoundingClientRect();
-        return rect.top <= readingLine && rect.bottom > readingLine;
-      });
-      const behindHeader = sections.find((section) => {
-        const rect = section.getBoundingClientRect();
-        return rect.top <= headerHeight / 2 && rect.bottom > headerHeight / 2;
-      });
-      setTheme(
-        behindHeader?.dataset.theme ??
-          (scrollY < headerHeight ? "clay" : "dark"),
+
+      /**
+       * Section physically underneath the header.
+       *
+       * This controls whether the header needs its light
+       * or dark visual treatment.
+       */
+      const headerLine = headerHeight / 2;
+
+      const behindHeader = sectionRects.find(
+        ({ rect }) => rect.top <= headerLine && rect.bottom > headerLine,
       );
-      setActive(current?.id ?? "");
-      const fade = clamp01(scrollY / 500);
+
+      const sectionTheme = getSectionTheme(behindHeader?.section.dataset.theme);
+
+      const nextTheme: HeaderTheme =
+        sectionTheme ?? (window.scrollY < headerHeight ? "clay" : "dark");
+
+      setTheme(nextTheme);
+
+      setActive(current?.section.id ?? "");
+
+      /**
+       * Fade the MLH badge over the first 500px
+       * of scrolling.
+       */
+      const fade = clamp01(window.scrollY / MLH_FADE_DISTANCE);
+
       document.documentElement.style.setProperty(
         "--mlh-badge-fade",
         String(fade),
       );
-      if (mlhBadge.current) {
-        mlhBadge.current.style.pointerEvents = fade > 0.95 ? "none" : "auto";
-        mlhBadge.current.setAttribute(
-          "aria-hidden",
-          fade > 0.95 ? "true" : "false",
-        );
-      }
+
+      /**
+       * Once effectively invisible, prevent the badge
+       * from becoming an invisible mouse or keyboard target.
+       */
+      setBadgeInactive(fade > MLH_DISABLE_THRESHOLD);
     };
+
     const requestUpdate = () => {
-      if (!frame) frame = requestAnimationFrame(update);
+      if (frame !== null) {
+        return;
+      }
+
+      frame = window.requestAnimationFrame(update);
     };
-    update();
-    addEventListener("scroll", requestUpdate, { passive: true });
-    addEventListener("resize", requestUpdate);
+
+    /**
+     * Section dimensions can change after images,
+     * fonts, or responsive content finish loading.
+     */
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(requestUpdate)
+        : null;
+
+    if (headerInner) {
+      resizeObserver?.observe(headerInner);
+    }
+
+    for (const section of sections) {
+      resizeObserver?.observe(section);
+    }
+
+    /**
+     * Schedule the first measurement instead of
+     * synchronously updating React state inside
+     * the effect body.
+     */
+    requestUpdate();
+
+    window.addEventListener("scroll", requestUpdate, {
+      passive: true,
+    });
+
+    window.addEventListener("resize", requestUpdate);
+
     return () => {
-      cancelAnimationFrame(frame);
-      removeEventListener("scroll", requestUpdate);
-      removeEventListener("resize", requestUpdate);
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+
+      resizeObserver?.disconnect();
+
+      window.removeEventListener("scroll", requestUpdate);
+
+      window.removeEventListener("resize", requestUpdate);
+
+      document.documentElement.style.removeProperty("--mlh-badge-fade");
     };
   }, []);
 
+  /**
+   * Mobile navigation interactions.
+   *
+   * Escape closes the menu and returns focus to
+   * the toggle button.
+   *
+   * Pointer interaction outside the header also
+   * closes the menu.
+   */
   useEffect(() => {
-    if (!open) return;
-    const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+    if (!open) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      setOpen(false);
+
+      menuButtonRef.current?.focus();
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (!headerRef.current?.contains(target)) {
         setOpen(false);
-        menuButton.current?.focus();
       }
     };
-    const outside = (event: PointerEvent) => {
-      if (!(event.target instanceof Node) || !header.current?.contains(event.target)) {
+
+    const handleResize = () => {
+      if (window.innerWidth >= DESKTOP_BREAKPOINT) {
         setOpen(false);
       }
     };
-    const resize = () => {
-      if (innerWidth >= 768) setOpen(false);
-    };
-    addEventListener("keydown", close);
-    addEventListener("pointerdown", outside);
-    addEventListener("resize", resize);
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    window.addEventListener("pointerdown", handlePointerDown);
+
+    window.addEventListener("resize", handleResize);
+
     return () => {
-      removeEventListener("keydown", close);
-      removeEventListener("pointerdown", outside);
-      removeEventListener("resize", resize);
+      window.removeEventListener("keydown", handleKeyDown);
+
+      window.removeEventListener("pointerdown", handlePointerDown);
+
+      window.removeEventListener("resize", handleResize);
     };
   }, [open]);
 
-  const navigate = (id: string) => (event: MouseEvent<HTMLAnchorElement>) => {
-    if (scrollToSection(id)) {
-      event.preventDefault();
+  /**
+   * Handle same-page navigation.
+   *
+   * scrollToSection returns true when custom scrolling
+   * successfully handles the navigation. Otherwise the
+   * normal anchor behavior remains available as fallback.
+   */
+  const navigate = useCallback(
+    (id: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+      if (scrollToSection(id)) {
+        event.preventDefault();
+      }
+
+      /**
+       * Always close mobile navigation after
+       * selecting a destination.
+       */
       setOpen(false);
-    }
-  };
+    },
+    [],
+  );
+
+  const badgeUnavailable = open || badgeInactive;
 
   return (
     <>
       <a
-        ref={mlhBadge}
         id="mlh-trust-badge"
         className="header-mlh-badge"
         href="https://mlh.io/na?utm_source=na-hackathon&utm_medium=TrustBadge&utm_campaign=2026-season&utm_content=gray"
         target="_blank"
         rel="noopener noreferrer"
-        aria-hidden={open}
-        tabIndex={open ? -1 : undefined}
+        aria-hidden={badgeUnavailable ? true : undefined}
+        tabIndex={badgeUnavailable ? -1 : undefined}
         hidden={open}
+        style={{
+          pointerEvents: badgeInactive ? "none" : undefined,
+        }}
       >
         <img
           src="/images/mlh-trust-badge-2027-gray.svg"
-          alt="Major League Hacking 2026 Hackathon Season"
+          alt="Major League Hacking"
           width={393}
           height={688}
           decoding="async"
           loading="lazy"
         />
       </a>
+
       <header
-        ref={header}
+        ref={headerRef}
         className="site-header"
         data-theme={theme}
         data-open={open}
@@ -137,19 +294,21 @@ export function Header() {
                 decorative
               />
             </a>
+
             <button
-              ref={menuButton}
+              ref={menuButtonRef}
               className="menu-toggle"
+              type="button"
               aria-label={open ? "Close navigation" : "Open navigation"}
               aria-expanded={open}
               aria-controls="mobile-navigation"
-              onClick={() => setOpen(!open)}
-              type="button"
+              onClick={() => setOpen((current) => !current)}
             >
-              <span />
-              <span />
+              <span aria-hidden="true" />
+              <span aria-hidden="true" />
             </button>
           </div>
+
           <nav
             aria-label="Main navigation"
             className="header-pill-nav items-center uppercase"
@@ -166,6 +325,7 @@ export function Header() {
             ))}
           </nav>
         </div>
+
         <nav
           id="mobile-navigation"
           aria-label="Mobile navigation"
@@ -179,10 +339,14 @@ export function Header() {
               aria-current={active === link.id ? "location" : undefined}
               onClick={navigate(link.id)}
             >
-              <span>0{index + 1}</span>
+              <span aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+
               {link.label}
+
               <span className="mobile-nav-arrow" aria-hidden="true">
-                <svg viewBox="0 0 16 16" fill="none">
+                <svg viewBox="0 0 16 16" fill="none" focusable="false">
                   <path
                     d="M3 13L13 3M13 3H6M13 3V10"
                     stroke="currentColor"
