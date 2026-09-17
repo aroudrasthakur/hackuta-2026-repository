@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ComponentProps } from "react";
 import {
   DIETARY_OPTIONS,
   GENDERS,
@@ -48,8 +48,33 @@ const FIELD_ORDER = [
   "mlhDataSharingConsent",
 ];
 
-function fieldClass(hasError?: string) {
-  return hasError ? `${inputClass} ${inputErrorClass}` : inputClass;
+type FieldProps = Omit<ComponentProps<"input">, "onChange"> & {
+  label: string;
+  error: string | undefined;
+  onChange: (value: string) => void;
+  options?: readonly string[];
+};
+
+function Field({ label, error, onChange, options, ...props }: FieldProps) {
+  const shared = {
+    id: props.id,
+    value: props.value,
+    "aria-invalid": !!error,
+    className: error ? `${inputClass} ${inputErrorClass}` : inputClass,
+  };
+  return (
+    <label className={labelClass} htmlFor={props.id}>
+      <span className={legendClass}>{label}</span>
+      {options ? (
+        <select {...shared} onChange={(event) => onChange(event.target.value)}>
+          <option value="" disabled>Select one</option>
+          {options.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+      ) : (
+        <input {...props} {...shared} onChange={(event) => onChange(event.target.value)} />
+      )}
+    </label>
+  );
 }
 
 export function ApplicationForm({
@@ -125,17 +150,10 @@ export function ApplicationForm({
     if (!firstHackathon) errs.firstHackathon = "Please let us know if this is your first hackathon.";
     if (!hearAbout) errs.hearAbout = "Please select how you heard about HackUTA.";
 
-    if (resumeUrl && !URL_PATTERN.test(resumeUrl)) {
-      errs.resumeUrl = "Enter a valid URL starting with http:// or https://.";
-    }
-    if (linkedin && !URL_PATTERN.test(linkedin)) {
-      errs.linkedin = "Enter a valid URL starting with http:// or https://.";
-    }
-    if (github && !URL_PATTERN.test(github)) {
-      errs.github = "Enter a valid URL starting with http:// or https://.";
-    }
-    if (portfolio && !URL_PATTERN.test(portfolio)) {
-      errs.portfolio = "Enter a valid URL starting with http:// or https://.";
+    for (const [field, value] of Object.entries({ resumeUrl, linkedin, github, portfolio })) {
+      if (value && !URL_PATTERN.test(value)) {
+        errs[field] = "Enter a valid URL starting with http:// or https://.";
+      }
     }
 
     if (!emergencyContactName.trim()) {
@@ -226,123 +244,49 @@ export function ApplicationForm({
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className={labelClass} htmlFor="firstName">
-          <span className={legendClass}>First name</span>
-          <input
-            id="firstName"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            aria-invalid={!!errors.firstName}
-            className={fieldClass(errors.firstName)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="lastName">
-          <span className={legendClass}>Last name</span>
-          <input
-            id="lastName"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            aria-invalid={!!errors.lastName}
-            className={fieldClass(errors.lastName)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="phone">
-          <span className={legendClass}>Phone number</span>
-          <input
-            id="phone"
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            aria-invalid={!!errors.phone}
-            className={fieldClass(errors.phone)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="age">
-          <span className={legendClass}>Age</span>
-          <input
-            id="age"
-            type="number"
-            min={18}
-            max={120}
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            aria-invalid={!!errors.age}
-            className={fieldClass(errors.age)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="school">
-          <span className={legendClass}>School / university</span>
-          <input
-            id="school"
-            value={school}
-            onChange={(e) => setSchool(e.target.value)}
-            aria-invalid={!!errors.school}
-            className={fieldClass(errors.school)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="levelOfStudy">
-          <span className={legendClass}>Level of study</span>
-          <select
-            id="levelOfStudy"
-            value={levelOfStudy}
-            onChange={(e) => setLevelOfStudy(e.target.value)}
-            aria-invalid={!!errors.levelOfStudy}
-            className={fieldClass(errors.levelOfStudy)}
-          >
-            <option value="" disabled>
-              Select one
-            </option>
-            {LEVELS_OF_STUDY.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={labelClass} htmlFor="major">
-          <span className={legendClass}>Major / field of study</span>
-          <input
-            id="major"
-            value={major}
-            onChange={(e) => setMajor(e.target.value)}
-            aria-invalid={!!errors.major}
-            className={fieldClass(errors.major)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="graduationYear">
-          <span className={legendClass}>Expected graduation year</span>
-          <input
-            id="graduationYear"
-            type="number"
-            min={2024}
-            max={2035}
-            value={graduationYear}
-            onChange={(e) => setGraduationYear(e.target.value)}
-            aria-invalid={!!errors.graduationYear}
-            className={fieldClass(errors.graduationYear)}
-          />
-        </label>
+        <Field
+          label="First name" id="firstName"
+          value={firstName} onChange={setFirstName} error={errors.firstName}
+        />
+        <Field
+          label="Last name" id="lastName"
+          value={lastName} onChange={setLastName} error={errors.lastName}
+        />
+        <Field
+          label="Phone number" id="phone"
+          type="tel"
+          value={phone} onChange={setPhone} error={errors.phone}
+        />
+        <Field
+          label="Age" id="age"
+          type="number" min={18} max={120}
+          value={age} onChange={setAge} error={errors.age}
+        />
+        <Field
+          label="School / university" id="school"
+          value={school} onChange={setSchool} error={errors.school}
+        />
+        <Field
+          label="Level of study" id="levelOfStudy"
+          options={LEVELS_OF_STUDY}
+          value={levelOfStudy} onChange={setLevelOfStudy} error={errors.levelOfStudy}
+        />
+        <Field
+          label="Major / field of study" id="major"
+          value={major} onChange={setMajor} error={errors.major}
+        />
+        <Field
+          label="Expected graduation year" id="graduationYear"
+          type="number" min={2024} max={2035}
+          value={graduationYear} onChange={setGraduationYear} error={errors.graduationYear}
+        />
       </div>
 
-      <label className={labelClass} htmlFor="gender">
-        <span className={legendClass}>Gender</span>
-        <select
-          id="gender"
-          value={gender}
-          onChange={(e) => setGender(e.target.value)}
-          aria-invalid={!!errors.gender}
-          className={fieldClass(errors.gender)}
-        >
-          <option value="" disabled>
-            Select one
-          </option>
-          {GENDERS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Field
+        label="Gender" id="gender"
+        options={GENDERS}
+        value={gender} onChange={setGender} error={errors.gender}
+      />
 
       <fieldset className={fieldsetClass}>
         <legend className={legendClass}>Race / ethnicity (select all that apply)</legend>
@@ -384,25 +328,11 @@ export function ApplicationForm({
         )}
       </fieldset>
 
-      <label className={labelClass} htmlFor="tshirtSize">
-        <span className={legendClass}>T-shirt size</span>
-        <select
-          id="tshirtSize"
-          value={tshirtSize}
-          onChange={(e) => setTshirtSize(e.target.value)}
-          aria-invalid={!!errors.tshirtSize}
-          className={fieldClass(errors.tshirtSize)}
-        >
-          <option value="" disabled>
-            Select one
-          </option>
-          {TSHIRT_SIZES.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Field
+        label="T-shirt size" id="tshirtSize"
+        options={TSHIRT_SIZES}
+        value={tshirtSize} onChange={setTshirtSize} error={errors.tshirtSize}
+      />
 
       <fieldset id="firstHackathon" className={fieldsetClass}>
         <legend className={legendClass}>Is this your first hackathon?</legend>
@@ -428,75 +358,33 @@ export function ApplicationForm({
         </div>
       </fieldset>
 
-      <label className={labelClass} htmlFor="hearAbout">
-        <span className={legendClass}>How did you hear about HackUTA?</span>
-        <select
-          id="hearAbout"
-          value={hearAbout}
-          onChange={(e) => setHearAbout(e.target.value)}
-          aria-invalid={!!errors.hearAbout}
-          className={fieldClass(errors.hearAbout)}
-        >
-          <option value="" disabled>
-            Select one
-          </option>
-          {HEAR_ABOUT_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Field
+        label="How did you hear about HackUTA?" id="hearAbout"
+        options={HEAR_ABOUT_OPTIONS}
+        value={hearAbout} onChange={setHearAbout} error={errors.hearAbout}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className={labelClass} htmlFor="resumeUrl">
-          <span className={legendClass}>Resume link (optional)</span>
-          <input
-            id="resumeUrl"
-            type="url"
-            value={resumeUrl}
-            onChange={(e) => setResumeUrl(e.target.value)}
-            placeholder="https://"
-            aria-invalid={!!errors.resumeUrl}
-            className={fieldClass(errors.resumeUrl)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="linkedin">
-          <span className={legendClass}>LinkedIn (optional)</span>
-          <input
-            id="linkedin"
-            type="url"
-            value={linkedin}
-            onChange={(e) => setLinkedin(e.target.value)}
-            placeholder="https://"
-            aria-invalid={!!errors.linkedin}
-            className={fieldClass(errors.linkedin)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="github">
-          <span className={legendClass}>GitHub (optional)</span>
-          <input
-            id="github"
-            type="url"
-            value={github}
-            onChange={(e) => setGithub(e.target.value)}
-            placeholder="https://"
-            aria-invalid={!!errors.github}
-            className={fieldClass(errors.github)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="portfolio">
-          <span className={legendClass}>Portfolio (optional)</span>
-          <input
-            id="portfolio"
-            type="url"
-            value={portfolio}
-            onChange={(e) => setPortfolio(e.target.value)}
-            placeholder="https://"
-            aria-invalid={!!errors.portfolio}
-            className={fieldClass(errors.portfolio)}
-          />
-        </label>
+        <Field
+          label="Resume link (optional)" id="resumeUrl"
+          type="url" placeholder="https://"
+          value={resumeUrl} onChange={setResumeUrl} error={errors.resumeUrl}
+        />
+        <Field
+          label="LinkedIn (optional)" id="linkedin"
+          type="url" placeholder="https://"
+          value={linkedin} onChange={setLinkedin} error={errors.linkedin}
+        />
+        <Field
+          label="GitHub (optional)" id="github"
+          type="url" placeholder="https://"
+          value={github} onChange={setGithub} error={errors.github}
+        />
+        <Field
+          label="Portfolio (optional)" id="portfolio"
+          type="url" placeholder="https://"
+          value={portfolio} onChange={setPortfolio} error={errors.portfolio}
+        />
       </div>
 
       <label className={labelClass}>
@@ -505,27 +393,15 @@ export function ApplicationForm({
       </label>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className={labelClass} htmlFor="emergencyContactName">
-          <span className={legendClass}>Emergency contact name</span>
-          <input
-            id="emergencyContactName"
-            value={emergencyContactName}
-            onChange={(e) => setEmergencyContactName(e.target.value)}
-            aria-invalid={!!errors.emergencyContactName}
-            className={fieldClass(errors.emergencyContactName)}
-          />
-        </label>
-        <label className={labelClass} htmlFor="emergencyContactPhone">
-          <span className={legendClass}>Emergency contact phone</span>
-          <input
-            id="emergencyContactPhone"
-            type="tel"
-            value={emergencyContactPhone}
-            onChange={(e) => setEmergencyContactPhone(e.target.value)}
-            aria-invalid={!!errors.emergencyContactPhone}
-            className={fieldClass(errors.emergencyContactPhone)}
-          />
-        </label>
+        <Field
+          label="Emergency contact name" id="emergencyContactName"
+          value={emergencyContactName} onChange={setEmergencyContactName} error={errors.emergencyContactName}
+        />
+        <Field
+          label="Emergency contact phone" id="emergencyContactPhone"
+          type="tel"
+          value={emergencyContactPhone} onChange={setEmergencyContactPhone} error={errors.emergencyContactPhone}
+        />
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-(--color-ocean)/40 p-4 text-sm">
