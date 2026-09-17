@@ -1,4 +1,4 @@
-name: CI Checks
+name: CI
 
 on:
   pull_request:
@@ -11,17 +11,20 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  code-quality:
-    name: Code Quality & Types
+  quality:
+    name: Lint, types, and build
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
+    timeout-minutes: 10
 
-      - name: Set up Node.js
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -30,62 +33,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run type check
-        run: npm run typecheck
-
-      - name: Run linter
+      - name: Lint application and Convex code
         run: npm run lint
 
-  security-scan:
-    name: Secret Leak Detection
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+      - name: Typecheck application, tests, and Convex schema
+        run: npm run typecheck
 
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_COMMENTS: 'false'
-
-  build:
-    name: Build
-    needs: code-quality
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build application
-        env:
-          VITE_USE_MOCK_API: 'true'
+      - name: Build production application
         run: npm run build
 
-      - name: Upload build output
+      - name: Upload production build
         uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
+          if-no-files-found: error
           retention-days: 1
 
   e2e:
-    name: Playwright E2E
-    needs: build
+    name: Browser, responsive, and accessibility tests
+    needs: quality
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
+    timeout-minutes: 15
 
-      - name: Set up Node.js
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -94,24 +69,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Download build output
+      - name: Download production build
         uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist
 
-      - name: Cache Playwright browser
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "version=$(npm ls @playwright/test --json | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).dependencies["@playwright/test"].version')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
 
-      - name: Install Playwright browser
+      - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
+      - name: Test production build
         env:
-          PLAYWRIGHT_USE_BUILD: 'true'
+          PLAYWRIGHT_USE_BUILD: "true"
         run: npm run test:e2e
 
       - name: Upload Playwright report
@@ -120,5 +100,43 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report/
-          retention-days: 7
           if-no-files-found: ignore
+          retention-days: 7
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  secrets:
+    name: Secret leak scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout full repository history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Scan for leaked secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"

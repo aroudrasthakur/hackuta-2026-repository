@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ThemeArt } from "./art/ThemeArt";
+import { OdysseyButton } from "./OdysseyButton";
 import {
   SPONSOR_EMAIL,
   SPONSOR_MAILTO,
@@ -175,12 +176,7 @@ export function Sponsors() {
         <SponsorTemple empty={rosterEmpty} />
 
         <div className="sponsors-cta">
-          <a
-            className="odyssey-btn inline-flex items-center justify-center"
-            href={SPONSOR_MAILTO}
-          >
-            Become a sponsor
-          </a>
+          <OdysseyButton href={SPONSOR_MAILTO}>Become a sponsor</OdysseyButton>
           <p className="sponsors-footnote">
             Sponsor inquiries
             <span aria-hidden="true"> · </span>

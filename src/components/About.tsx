@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ThemeArt } from "./art/ThemeArt";
+import { OdysseyButton } from "./OdysseyButton";
 
 const DISCORD_URL = "https://discord.gg/2bVsYS3SgS";
 
@@ -8,40 +9,6 @@ const perks = [
   { label: "Free Food & Swag", tone: "ocean" as const },
   { label: "Legendary Prizes", tone: "terracotta" as const },
 ];
-
-function OdysseyButton({
-  href,
-  children,
-  inactive = false,
-}: {
-  href?: string;
-  children: string;
-  inactive?: boolean;
-}) {
-  if (inactive) {
-    return (
-      <button
-        type="button"
-        className="odyssey-btn inline-flex items-center justify-center"
-        disabled
-        aria-disabled="true"
-      >
-        {children}
-      </button>
-    );
-  }
-
-  return (
-    <a
-      className="odyssey-btn inline-flex items-center justify-center"
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      {children}
-    </a>
-  );
-}
 
 export function About() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -81,7 +48,7 @@ export function About() {
         </h2>
         <ThemeArt name="feast" className="odyssey-art-feast theme-art--plain" />
 
-        <div className="odyssey-call-actions flex flex-col sm:flex-row items-stretch sm:items-center justify-center">
+        <div className="odyssey-call-actions">
           <OdysseyButton href={DISCORD_URL}>Join Discord</OdysseyButton>
           <OdysseyButton inactive>Devpost (Coming Soon)</OdysseyButton>
         </div>
