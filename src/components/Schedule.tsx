@@ -67,6 +67,47 @@ function formatTime(at: string) {
   return `${hours % 12 === 0 ? 12 : hours % 12}:${String(minutes).padStart(2, "0")} ${period}`;
 }
 
+function ScheduleTabButton({
+  day,
+  index,
+  isSelected,
+  tabRef,
+  onSelect,
+  onKeyDown,
+}: {
+  day: ScheduleDay;
+  index: number;
+  isSelected: boolean;
+  tabRef: (node: HTMLButtonElement | null) => void;
+  onSelect: () => void;
+  onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      ref={tabRef}
+      type="button"
+      role="tab"
+      id={`schedule-tab-${index + 1}`}
+      className="weekend-tab"
+      aria-selected={isSelected}
+      aria-controls={`schedule-panel-${index + 1}`}
+      tabIndex={isSelected ? 0 : -1}
+      onClick={onSelect}
+      onKeyDown={onKeyDown}
+    >
+      <span className="weekend-tab-numeral" aria-hidden="true">
+        {day.numeral}
+      </span>
+      <span className="weekend-tab-label">
+        Day {day.numeral}
+        <span className="weekend-tab-date">
+          {`${day.weekday}, ${day.date}`}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 export function Schedule() {
   const [selected, setSelected] = useState(() => nearestDayIndex(Date.now()));
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -110,37 +151,19 @@ export function Schedule() {
           role="tablist"
           aria-label="Schedule days"
         >
-          {eventDays.map((day, index) => {
-            const isSelected = index === selected;
-
-            return (
-              <button
-                key={day.isoDate}
-                ref={(node) => {
-                  tabs.current[index] = node;
-                }}
-                type="button"
-                role="tab"
-                id={`schedule-tab-${index + 1}`}
-                className="weekend-tab"
-                aria-selected={isSelected}
-                aria-controls={`schedule-panel-${index + 1}`}
-                tabIndex={isSelected ? 0 : -1}
-                onClick={() => setSelected(index)}
-                onKeyDown={moveFocus}
-              >
-                <span className="weekend-tab-numeral" aria-hidden="true">
-                  {day.numeral}
-                </span>
-                <span className="weekend-tab-label">
-                  Day {day.numeral}
-                  <span className="weekend-tab-date">
-                    {`${day.weekday}, ${day.date}`}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
+          {eventDays.map((day, index) => (
+            <ScheduleTabButton
+              key={day.isoDate}
+              day={day}
+              index={index}
+              isSelected={index === selected}
+              tabRef={(node) => {
+                tabs.current[index] = node;
+              }}
+              onSelect={() => setSelected(index)}
+              onKeyDown={moveFocus}
+            />
+          ))}
         </div>
 
         {eventDays.map((day, index) => (
