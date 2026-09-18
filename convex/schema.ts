@@ -44,6 +44,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index('by_user_hackathon', ['userId', 'hackathonId'])
+    .index('by_resume', ['answers.resumeStorageId'])
     .index('by_hackathon_status', ['hackathonId', 'status']),
 
   resumeUploadRequests: defineTable({

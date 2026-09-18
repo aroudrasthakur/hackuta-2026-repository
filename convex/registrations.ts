@@ -12,7 +12,7 @@ const RESUME_UPLOAD_WINDOW_MS = 10 * 60 * 1000;
 const MAX_RESUME_UPLOADS_PER_WINDOW = 5;
 const RESUME_UPLOAD_EXPIRY_MS = 30 * 60 * 1000;
 const PDF_MAGIC_HEADER = [0x25, 0x50, 0x44, 0x46, 0x2d] as const;
-const markResumeUploadVerifiedRef = makeFunctionReference<"internalMutation">(
+const markResumeUploadVerifiedRef = makeFunctionReference<"mutation">(
   "registrations:markResumeUploadVerified",
 );
 
@@ -22,7 +22,7 @@ export const generateResumeUploadUrl = mutation({
     lastName: v.string(),
     phone: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const now = Date.now();
     const userKey = normalizeRegistrantKey(args.firstName, args.lastName, args.phone);
     const recentRequests = await ctx.db
@@ -54,10 +54,24 @@ async function upsertRegistration(
 ) {
   const userId = `mock-user:${normalizeRegistrantKey(data.firstName, data.lastName, data.phone)}`;
   const { hackathonId, resumeStorageId: rawStorageId, ...fields } = data;
+  const existing = await ctx.db
+    .query("registrations")
+    .withIndex("by_user_hackathon", (q) => q.eq("userId", userId).eq("hackathonId", hackathonId))
+    .first();
+  // _storage IDs must use the system-table reader.
   const resumeStorageId = rawStorageId ? ctx.db.system.normalizeId("_storage", rawStorageId) : undefined;
   if (rawStorageId) {
     const now = Date.now();
     const metadata = resumeStorageId ? await ctx.db.system.get(resumeStorageId) : null;
+    const attachment = resumeStorageId
+      ? await ctx.db.query("registrations")
+        .withIndex("by_resume", (q) => q.eq("answers.resumeStorageId", resumeStorageId))
+        .first()
+      : null;
+    if (attachment && attachment._id !== existing?._id) {
+      throw new Error("This resume is already attached to another application.");
+    }
+    const retainingResume = !!attachment;
     const verification = resumeStorageId
       ? await ctx.db
         .query("verifiedResumeUploads")
@@ -69,20 +83,17 @@ async function upsertRegistration(
       metadata.contentType !== "application/pdf" ||
       metadata.size === 0 ||
       metadata.size > MAX_RESUME_BYTES ||
-      metadata._creationTime < now - RESUME_UPLOAD_EXPIRY_MS ||
-      !verification ||
-      verification.createdAt < now - RESUME_UPLOAD_EXPIRY_MS
+      (!retainingResume && (
+        metadata._creationTime < now - RESUME_UPLOAD_EXPIRY_MS ||
+        !verification ||
+        verification.createdAt < now - RESUME_UPLOAD_EXPIRY_MS
+      ))
     ) {
       throw new Error("Please upload a PDF resume of 5 MB or smaller.");
     }
-    await ctx.db.delete(verification._id);
+    if (verification) await ctx.db.delete(verification._id);
   }
   const answers = { ...fields, resumeStorageId: resumeStorageId ?? undefined };
-
-  const existing = await ctx.db
-    .query("registrations")
-    .withIndex("by_user_hackathon", (q) => q.eq("userId", userId).eq("hackathonId", hackathonId))
-    .first();
 
   if (existing) {
     const previousResume = existing.answers.resumeStorageId;
@@ -153,6 +164,12 @@ export const deleteResumeUpload = mutation({
     const now = Date.now();
     const normalizedStorageId = ctx.db.system.normalizeId("_storage", storageId);
     if (!normalizedStorageId) return { ok: true as const };
+    // A request may commit successfully even if its response never reaches the client.
+    // Cleanup must never remove a file already saved with an application.
+    const attachment = await ctx.db.query("registrations")
+      .withIndex("by_resume", (q) => q.eq("answers.resumeStorageId", normalizedStorageId))
+      .first();
+    if (attachment) return { ok: true as const };
     const verification = await ctx.db
       .query("verifiedResumeUploads")
       .withIndex("by_storage", (q) => q.eq("storageId", normalizedStorageId))
