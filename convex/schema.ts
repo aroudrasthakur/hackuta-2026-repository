@@ -6,10 +6,23 @@ import { registrationAnswers } from './registrationAnswers';
 // auth/provider layer that is blocked by the email integration.
 export default defineSchema({
   users: defineTable({
-    email: v.optional(v.string()),
+    email: v.string(),
     displayName: v.optional(v.string()),
     createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    profile: v.optional(v.any()),
+    tokenIdentifier: v.optional(v.string()),
+    verifiedAt: v.optional(v.number()),
   }).index('email', ['email']),
+
+  emailVerificationChallenges: defineTable({
+    email: v.string(),
+    codeHash: v.string(),
+    expiresAt: v.number(),
+    attempts: v.number(),
+    lastSentAt: v.number(),
+    consumedAt: v.optional(v.number()),
+  }).index('by_email', ['email']),
 
   hackathons: defineTable({
     slug: v.string(),

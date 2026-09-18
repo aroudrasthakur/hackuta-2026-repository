@@ -7,7 +7,7 @@ import {
   RACE_ETHNICITY_OPTIONS,
   TSHIRT_SIZES,
 } from "../../constants/application";
-import { submitRegistration } from "./registerApi";
+import { requestVerificationCode } from "./registerApi";
 
 function toggleValue(values: string[], value: string): string[] {
   return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
@@ -22,10 +22,12 @@ const fieldsetClass = "flex flex-col gap-2 text-sm";
 const checkboxRowClass = "flex items-center gap-2 text-(--color-light)";
 const URL_PATTERN = /^https?:\/\/.+/i;
 const PHONE_PATTERN = /^[0-9+\-\s()]{7,}$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Errors = Record<string, string>;
 
 const FIELD_ORDER = [
+  "email",
   "firstName",
   "lastName",
   "phone",
@@ -52,10 +54,14 @@ function fieldClass(hasError?: string) {
   return hasError ? `${inputClass} ${inputErrorClass}` : inputClass;
 }
 
+export type RegistrationPayload = Record<string, unknown> & {
+  email: string;
+};
+
 export function ApplicationForm({
   onSubmitted,
 }: {
-  onSubmitted: () => void;
+  onSubmitted: (application: RegistrationPayload) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Errors>({});
@@ -64,6 +70,7 @@ export function ApplicationForm({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [age, setAge] = useState("");
   const [school, setSchool] = useState("");
   const [levelOfStudy, setLevelOfStudy] = useState<string>("");
@@ -89,6 +96,9 @@ export function ApplicationForm({
 
   function validate(): Errors {
     const errs: Errors = {};
+
+    if (!email.trim()) errs.email = "Email is required.";
+    else if (!EMAIL_PATTERN.test(email.trim())) errs.email = "Enter a valid email address.";
 
     if (!firstName.trim()) errs.firstName = "First name is required.";
     if (!lastName.trim()) errs.lastName = "Last name is required.";
@@ -173,7 +183,8 @@ export function ApplicationForm({
 
     setSubmitting(true);
     try {
-      await submitRegistration({
+      const application = {
+        email: email.trim().toLowerCase(),
         firstName,
         lastName,
         phone,
@@ -199,10 +210,11 @@ export function ApplicationForm({
         codeOfConductAgreed,
         mlhDataSharingConsent,
         mlhCommunicationsConsent,
-      });
-      onSubmitted();
+      } satisfies RegistrationPayload;
+      await requestVerificationCode(application.email);
+      onSubmitted(application);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : "Failed to send verification code.");
     } finally {
       setSubmitting(false);
     }
@@ -247,6 +259,18 @@ export function ApplicationForm({
             onChange={(e) => setPhone(e.target.value)}
             aria-invalid={!!errors.phone}
             className={fieldClass(errors.phone)}
+          />
+        </label>
+        <label className={labelClass} htmlFor="email">
+          <span className={legendClass}>Email address</span>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            aria-invalid={!!errors.email}
+            className={fieldClass(errors.email)}
           />
         </label>
         <label className={labelClass} htmlFor="age">

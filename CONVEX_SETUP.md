@@ -1,23 +1,25 @@
 # Registration backend
 
-Convex is the selected backend. The retired Vercel API, file-based storage,
-Redis adapter, and email adapter have been removed.
+Convex is the registration backend. The registration flow uses Convex actions
+for email verification and confirmation, and Convex mutations for atomic data
+persistence.
 
-The registration UI is not yet connected to a working production flow:
+## Required configuration
 
-- `registerApi.ts` calls `sendCode`, `verifyCode`, and `register`; the current
-  Convex modules do not implement these functions.
-- The form payload needs mapping to the registration schema.
-- User identity, ownership checks, and admin authorization must be implemented
-  before exposing registration queries or mutations.
-- Production and preview CSP must allow the selected Convex deployment.
-- The frontend build currently excludes Convex. A passing frontend build does
-  not validate the backend; generate its bindings and check it during integration.
+- Set `VITE_CONVEX_URL` in the frontend deployment to the Convex deployment URL.
+- Set the cPanel SMTP variables in the Convex deployment environment:
+	`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, and
+	`SMTP_FROM`.
+- Use the complete mailbox address `hello@hackuta.org` as `SMTP_USER`.
+- Do not put the mailbox password in `.env.local`, Vite variables, or browser code.
 
-For a local UI preview, copy `.env.example` to `.env.local`, set
-`VITE_USE_MOCK_API=true`, and run `npm run dev`. Visit `/register` and read the
-verification code in the browser console. This mode sends no email and saves
-no data. Keep it disabled in production.
+## Deployment
 
-Set `VITE_CONVEX_URL` to the team's deployment when completing the integration.
-Do not deploy the current backend as a finished registration system.
+Run `npx convex codegen` after schema or function changes, then deploy the
+functions with the team's normal Convex deployment command. Set the frontend
+`VITE_CONVEX_URL` to the same deployment and ensure the site's CSP allows its
+origin in `connect-src`.
+
+The applicant flow is: request code, verify code, submit the application, then
+receive a confirmation email. A confirmation is attempted only after the
+registration write succeeds.
