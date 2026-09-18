@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import schema from "../../convex/schema";
+import { makeFunctionReference } from "convex/server";
 import { MIN_GRADUATION_YEAR } from "../../shared/registration/constants";
 
 const modules = import.meta.glob("../../convex/**/*.ts", { eager: false });
@@ -26,7 +27,7 @@ const validRegistrationData = {
   tshirtSize: "M",
   firstHackathon: true,
   hearAbout: "Discord",
-  resumeUrl: undefined,
+  resumeStorageId: undefined,
   linkedin: undefined,
   github: undefined,
   portfolio: undefined,
@@ -40,6 +41,29 @@ const validRegistrationData = {
 };
 
 describe("convex registrations", () => {
+  it("stores a PDF storage reference with the application", async () => {
+    const t = convexTest(schema, modules);
+    const storageId = await t.run((ctx) => ctx.storage.store(new Blob(["%PDF-1.7"], { type: "application/pdf" })));
+    // convex-test's storeBlob omits contentType; emulate upload endpoint metadata.
+    await t.run((ctx) => (ctx.db.patch as unknown as (id: string, value: { contentType: string }) => Promise<void>)(storageId, { contentType: "application/pdf" }));
+    await t.mutation(makeFunctionReference<"mutation">("registrations:register"), { data: { ...validRegistrationData, resumeStorageId: storageId } });
+    const registration = await t.run((ctx) => ctx.db.query("registrations").first());
+    expect(registration?.answers.resumeStorageId).toBe(storageId);
+  });
+
+  it.each([
+    ["text/plain", "not a pdf"],
+    ["application/pdf", ""],
+    ["application/pdf", "x".repeat(5 * 1024 * 1024 + 1)],
+  ])("rejects invalid stored file metadata (%s)", async (type, contents) => {
+    const t = convexTest(schema, modules);
+    const storageId = await t.run((ctx) => ctx.storage.store(new Blob([contents], { type })));
+    await t.run((ctx) => (ctx.db.patch as unknown as (id: string, value: { contentType: string }) => Promise<void>)(storageId, { contentType: type }));
+    await expect(t.mutation(makeFunctionReference<"mutation">("registrations:register"), {
+      data: { ...validRegistrationData, resumeStorageId: storageId },
+    })).rejects.toThrow("Please upload a PDF resume");
+  });
+
   it("creates and updates registrations", async () => {
     const t = convexTest(schema, modules) as unknown as ConvexTestClient;
 

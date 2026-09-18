@@ -115,6 +115,7 @@ export const registrationPayloadSchema = z
     }),
     hearAbout: hearAboutSchema,
     resumeUrl: optionalHttpUrl("Resume link"),
+    resumeStorageId: z.string().min(1).max(128).optional(),
     linkedin: optionalHttpUrl("LinkedIn"),
     github: optionalHttpUrl("GitHub"),
     portfolio: optionalHttpUrl("Portfolio"),

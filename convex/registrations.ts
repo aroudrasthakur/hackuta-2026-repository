@@ -1,7 +1,18 @@
-import { mutation, type MutationCtx } from "./_generated/server";
+import { mutation } from "./_generated/server";
+import type { DataModelFromSchemaDefinition, GenericMutationCtx } from "convex/server";
+import type schema from "./schema";
 import { v } from "convex/values";
 import { validateRegistrationPayload } from "../shared/registration/validation";
 import type { RegistrationPayload } from "../shared/registration/types";
+import { MAX_RESUME_BYTES } from "../shared/registration/resume";
+
+type MutationCtx = GenericMutationCtx<DataModelFromSchemaDefinition<typeof schema>>;
+
+// Uses the same temporary, unauthenticated pipeline as registration submission.
+export const generateResumeUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => ctx.storage.generateUploadUrl(),
+});
 
 async function upsertRegistration(
   ctx: MutationCtx,
@@ -9,7 +20,15 @@ async function upsertRegistration(
   status: "draft" | "submitted",
 ) {
   const userId = `mock-user:${data.firstName.toLowerCase()}-${data.lastName.toLowerCase()}-${data.phone.replace(/\D/g, "")}`;
-  const { hackathonId, ...answers } = data;
+  const { hackathonId, resumeStorageId: rawStorageId, ...fields } = data;
+  const resumeStorageId = rawStorageId ? ctx.db.system.normalizeId("_storage", rawStorageId) : undefined;
+  if (rawStorageId) {
+    const metadata = resumeStorageId ? await ctx.db.system.get(resumeStorageId) : null;
+    if (!metadata || metadata.contentType !== "application/pdf" || metadata.size === 0 || metadata.size > MAX_RESUME_BYTES) {
+      throw new Error("Please upload a PDF resume of 5 MB or smaller.");
+    }
+  }
+  const answers = { ...fields, resumeStorageId: resumeStorageId ?? undefined };
 
   const existing = await ctx.db
     .query("registrations")
