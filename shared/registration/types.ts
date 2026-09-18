@@ -32,7 +32,7 @@ export type ApplicationFormData = {
   tshirtSize: TshirtSize | "";
   firstHackathon: boolean | null;
   hearAbout: HearAboutOption | "";
-  resumeUrl: string;
+  resume: File | null;
   linkedin: string;
   github: string;
   portfolio: string;
@@ -62,7 +62,7 @@ export const FIELD_ORDER: FieldName[] = [
   "tshirtSize",
   "firstHackathon",
   "hearAbout",
-  "resumeUrl",
+  "resume",
   "linkedin",
   "github",
   "portfolio",
@@ -88,7 +88,7 @@ export const INITIAL_FORM: ApplicationFormData = {
   tshirtSize: "",
   firstHackathon: null,
   hearAbout: "",
-  resumeUrl: "",
+  resume: null,
   linkedin: "",
   github: "",
   portfolio: "",

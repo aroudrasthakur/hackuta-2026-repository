@@ -114,7 +114,6 @@ export const registrationPayloadSchema = z
       message: "Please let us know if this is your first hackathon.",
     }),
     hearAbout: hearAboutSchema,
-    resumeUrl: optionalHttpUrl("Resume link"),
     resumeStorageId: z.string().min(1).max(128).optional(),
     linkedin: optionalHttpUrl("LinkedIn"),
     github: optionalHttpUrl("GitHub"),

@@ -40,6 +40,25 @@ describe("SuccessStep", () => {
 });
 
 describe("ApplicationForm", () => {
+  it("selects and removes a PDF resume", async () => {
+    const user = userEvent.setup();
+    render(<ApplicationForm onSubmitted={vi.fn()} />);
+    const input = screen.getByLabelText("Resume (optional)") as HTMLInputElement;
+    const file = new File(["%PDF-1.7"], "resume.pdf", { type: "application/pdf" });
+    await user.upload(input, file);
+    expect(input.files?.[0]).toBe(file);
+    await user.click(screen.getByRole("button", { name: "Remove resume" }));
+    expect(input.files).toHaveLength(0);
+  });
+
+  it("shows an inline error for a non-PDF resume", async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    render(<ApplicationForm onSubmitted={vi.fn()} />);
+    await user.upload(screen.getByLabelText("Resume (optional)"), new File(["text"], "resume.docx"));
+    expect(screen.getByText("Please select a PDF file.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Resume (optional)")).toHaveAttribute("aria-invalid", "true");
+  });
+
   it("submits a valid application", async () => {
     const user = userEvent.setup();
     const onSubmitted = vi.fn();
