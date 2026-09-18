@@ -43,6 +43,9 @@ jobs:
         run: npm run test:unit:coverage
 
       - name: Build production application
+        env:
+          # Browser tests intercept this endpoint; no real deployment is contacted.
+          VITE_CONVEX_URL: https://registration-test.convex.cloud
         run: npm run build
 
       - name: Upload production build
