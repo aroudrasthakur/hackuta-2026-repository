@@ -1,4 +1,5 @@
 import type { RegistrationPayload } from "../../../shared/registration/types";
+import { validateResume } from "../../../shared/registration/resume";
 
 const CONVEX_URL = import.meta.env.VITE_CONVEX_URL;
 
@@ -27,8 +28,34 @@ async function callConvexMutation<T>(
   return (data.value ?? data) as T;
 }
 
-async function submitRegistration(payload: RegistrationPayload) {
-  return callConvexMutation<{ ok: true }>("registrations:register", { data: payload });
+// Reuse a completed upload if submitting the application fails and is retried.
+const uploadedResumes = new WeakMap<File, string>();
+
+async function submitRegistration(payload: RegistrationPayload, resume: File | null = null) {
+  let resumeStorageId: string | undefined;
+  if (resume) {
+    const error = validateResume(resume);
+    if (error) throw new Error(error);
+    resumeStorageId = uploadedResumes.get(resume);
+    if (!resumeStorageId) {
+      const uploadUrl = await callConvexMutation<string>("registrations:generateResumeUploadUrl", {});
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/pdf" },
+        body: resume,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || typeof data.storageId !== "string" || !data.storageId) {
+        throw new Error(SUBMIT_ERROR_MESSAGE);
+      }
+      const storageId: string = data.storageId;
+      resumeStorageId = storageId;
+      uploadedResumes.set(resume, storageId);
+    }
+  }
+  return callConvexMutation<{ ok: true }>("registrations:register", {
+    data: resumeStorageId ? { ...payload, resumeStorageId } : payload,
+  });
 }
 
 export { submitRegistration };
