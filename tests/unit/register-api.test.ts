@@ -32,23 +32,35 @@ const payload: RegistrationPayload = {
 };
 
 describe("submitRegistration", () => {
-  it("uploads the PDF and reuses its storage ID on retry", async () => {
+  it("uploads a new PDF after failed submission cleanup", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
     vi.resetModules();
     const fetchMock = vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response(JSON.stringify({ value: "https://upload.example" })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ storageId: "resume-id" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ value: { ok: true } })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: "error" }), { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ value: { ok: true } })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ value: "https://upload.example" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ storageId: "resume-id-2" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ value: { ok: true } })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ value: { ok: true } })));
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
     const resume = new File(["%PDF-1.7"], "resume.pdf", { type: "application/pdf" });
     await expect(submitRegistration(payload, resume)).rejects.toThrow();
     await expect(submitRegistration(payload, resume)).resolves.toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(9);
     expect(fetchMock).toHaveBeenNthCalledWith(2, "https://upload.example", {
       method: "POST", headers: { "Content-Type": "application/pdf" }, body: resume,
     });
-    expect(JSON.parse(String(fetchMock.mock.calls[3]?.[1]?.body)).args.data.resumeStorageId).toBe("resume-id");
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).args).toEqual({
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      phone: payload.phone,
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body)).path).toBe("registrations:verifyResumeUpload");
+    expect(JSON.parse(String(fetchMock.mock.calls[4]?.[1]?.body)).path).toBe("registrations:deleteResumeUpload");
+    expect(JSON.parse(String(fetchMock.mock.calls[8]?.[1]?.body)).args.data.resumeStorageId).toBe("resume-id-2");
   });
 
   it("does not submit the application when uploading fails", async () => {

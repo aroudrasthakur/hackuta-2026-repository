@@ -46,13 +46,14 @@ describe("convex registrations", () => {
     const storageId = await t.run((ctx) => ctx.storage.store(new Blob(["%PDF-1.7"], { type: "application/pdf" })));
     // convex-test's storeBlob omits contentType; emulate upload endpoint metadata.
     await t.run((ctx) => (ctx.db.patch as unknown as (id: string, value: { contentType: string }) => Promise<void>)(storageId, { contentType: "application/pdf" }));
+    await t.action(makeFunctionReference<"action">("registrations:verifyResumeUpload"), { storageId });
     await t.mutation(makeFunctionReference<"mutation">("registrations:register"), { data: { ...validRegistrationData, resumeStorageId: storageId } });
     const registration = await t.run((ctx) => ctx.db.query("registrations").first());
     expect(registration?.answers.resumeStorageId).toBe(storageId);
   });
 
   it.each([
-    ["text/plain", "not a pdf"],
+    ["application/pdf", "not a pdf"],
     ["application/pdf", ""],
     ["application/pdf", "x".repeat(5 * 1024 * 1024 + 1)],
   ])("rejects invalid stored file metadata (%s)", async (type, contents) => {
@@ -62,6 +63,19 @@ describe("convex registrations", () => {
     await expect(t.mutation(makeFunctionReference<"mutation">("registrations:register"), {
       data: { ...validRegistrationData, resumeStorageId: storageId },
     })).rejects.toThrow("Please upload a PDF resume");
+  });
+
+  it("rate limits resume upload URL generation", async () => {
+    const t = convexTest(schema, modules);
+    const args = { firstName: "Sam", lastName: "Test", phone: "5551234567" };
+
+    for (let index = 0; index < 5; index += 1) {
+      await expect(t.mutation(makeFunctionReference<"mutation">("registrations:generateResumeUploadUrl"), args)).resolves.toEqual(expect.any(String));
+    }
+
+    await expect(
+      t.mutation(makeFunctionReference<"mutation">("registrations:generateResumeUploadUrl"), args),
+    ).rejects.toThrow("Too many resume upload attempts");
   });
 
   it("creates and updates registrations", async () => {
