@@ -21,7 +21,7 @@ async function upsertRegistration(
 ) {
   const userId = `mock-user:${data.firstName.toLowerCase()}-${data.lastName.toLowerCase()}-${data.phone.replace(/\D/g, "")}`;
   const { hackathonId, resumeStorageId: rawStorageId, ...fields } = data;
-  const resumeStorageId = rawStorageId ? ctx.db.system.normalizeId("_storage", rawStorageId) : undefined;
+  const resumeStorageId = rawStorageId ? ctx.db.normalizeId("_storage", rawStorageId) : undefined;
   if (rawStorageId) {
     const metadata = resumeStorageId ? await ctx.db.system.get(resumeStorageId) : null;
     if (!metadata || metadata.contentType !== "application/pdf" || metadata.size === 0 || metadata.size > MAX_RESUME_BYTES) {
