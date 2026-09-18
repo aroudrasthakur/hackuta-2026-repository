@@ -1,4 +1,4 @@
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useRef, useState, type FormEvent } from "react";
 import { OdysseyButton } from "../../components/OdysseyButton";
 import {
   DIETARY_OPTIONS,
@@ -26,6 +26,7 @@ import {
 import { submitRegistration } from "./registerApi";
 import type { ApplicationFormData, FieldName } from "../../../shared/registration/types";
 import { INITIAL_FORM } from "../../../shared/registration/types";
+import { validateResume } from "../../../shared/registration/resume";
 import {
   focusFirstInvalidField,
   toggleValue,
@@ -45,6 +46,7 @@ export function ApplicationForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const resumeInput = useRef<HTMLInputElement>(null);
 
   const updateField = useCallback(
     <K extends keyof ApplicationFormData>(key: K, value: ApplicationFormData[K]) => {
@@ -77,7 +79,7 @@ export function ApplicationForm({
 
     setSubmitting(true);
     try {
-      await submitRegistration(validation.payload);
+      await submitRegistration(validation.payload, form.resume);
       onSubmitted();
     } catch (err) {
       console.error("Registration submission failed", err);
@@ -331,18 +333,33 @@ export function ApplicationForm({
       </SelectField>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField
-          id="resumeUrl"
-          label="Resume link (optional)"
-          type="url"
-          value={form.resumeUrl}
-          onChange={(e) => updateField("resumeUrl", e.target.value)}
-          placeholder="https://"
-          autoCapitalize="none"
-          spellCheck={false}
-          maxLength={FIELD_LIMITS.url}
-          error={errors.resumeUrl}
-        />
+        <div className={labelClass}>
+          <label htmlFor="resume" className={legendClass}>Resume (optional)</label>
+          <input
+            ref={resumeInput}
+            id="resume"
+            type="file"
+            accept=".pdf,application/pdf"
+            disabled={submitting}
+            className={`${fieldClass(errors.resume)} min-w-0 w-full`}
+            aria-invalid={!!errors.resume}
+            aria-describedby={`resume-help${errors.resume ? " resume-error" : ""}`}
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              updateField("resume", file);
+              const error = file ? validateResume(file) : undefined;
+              if (error) setErrors((prev) => ({ ...prev, resume: error }));
+            }}
+          />
+          <p id="resume-help" className="text-xs text-(--color-mist)">PDF only, up to 5 MB. Uploaded when you submit.</p>
+          <FieldError id="resume-error" message={errors.resume} />
+          {form.resume && (
+            <button type="button" disabled={submitting} className="self-start underline underline-offset-4" onClick={() => {
+              updateField("resume", null);
+              if (resumeInput.current) resumeInput.current.value = "";
+            }}>Remove resume</button>
+          )}
+        </div>
         <TextField
           id="linkedin"
           label="LinkedIn (optional)"

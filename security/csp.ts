@@ -6,7 +6,7 @@ export const contentSecurityPolicy = [
   "style-src 'self' https://vercel.live 'unsafe-inline'",
   "img-src 'self' https://vercel.live https://vercel.com data: blob:",
   "font-src 'self' https://vercel.live https://assets.vercel.com",
-  "connect-src 'self' https://vercel.live wss://ws-us3.pusher.com",
+  "connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://*.convex.cloud",
   "frame-src https://vercel.live",
   "worker-src 'self' blob:",
   "media-src 'self'",

@@ -44,5 +44,16 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index('by_user_hackathon', ['userId', 'hackathonId'])
+    .index('by_resume', ['answers.resumeStorageId'])
     .index('by_hackathon_status', ['hackathonId', 'status']),
+
+  resumeUploadRequests: defineTable({
+    userKey: v.string(),
+    createdAt: v.number(),
+  }).index('by_user_createdAt', ['userKey', 'createdAt']),
+
+  verifiedResumeUploads: defineTable({
+    storageId: v.id('_storage'),
+    createdAt: v.number(),
+  }).index('by_storage', ['storageId']),
 });

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { MIN_GRADUATION_YEAR } from "../../shared/registration/constants";
@@ -40,6 +40,62 @@ describe("SuccessStep", () => {
 });
 
 describe("ApplicationForm", () => {
+  it("corrects validation errors and submits optional details with a PDF only once", async () => {
+    const user = userEvent.setup();
+    const onSubmitted = vi.fn();
+    const { submitRegistration } = await import("../../src/pages/Register/registerApi");
+    let finish!: (value: { ok: true }) => void;
+    vi.mocked(submitRegistration).mockClear().mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    render(<ApplicationForm onSubmitted={onSubmitted} />);
+    await user.click(screen.getByRole("button", { name: "Submit application" }));
+    await fillValidApplication(user);
+    expect(screen.queryByText("First name is required.")).not.toBeInTheDocument();
+    await user.click(within(screen.getByRole("group", { name: /Dietary restrictions/ })).getByLabelText(/^Other$/));
+    await user.click(screen.getByRole("button", { name: "Submit application" }));
+    expect(screen.getByText("Please describe your dietary restriction.")).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("Tell us more"), "No peanuts");
+    await user.type(screen.getByLabelText("LinkedIn (optional)"), "https://linkedin.com/in/sam");
+    await user.type(screen.getByLabelText("Portfolio (optional)"), "https://example.com/sam");
+    await user.type(screen.getByLabelText(/Accessibility needs/), "Step-free access");
+    await user.click(screen.getByLabelText(/^No$/));
+    const resume = new File(["%PDF-1.7"], "resume.pdf", { type: "application/pdf" });
+    await user.upload(screen.getByLabelText("Resume (optional)"), resume);
+    const button = screen.getByRole("button", { name: "Submit application" });
+    await user.click(button);
+    expect(button).toBeDisabled();
+    expect(screen.getByLabelText("Resume (optional)")).toBeDisabled();
+    fireEvent.submit(button.closest("form")!);
+    expect(submitRegistration).toHaveBeenCalledTimes(1);
+    expect(submitRegistration).toHaveBeenCalledWith(expect.objectContaining({
+      otherDietary: "No peanuts", linkedin: "https://linkedin.com/in/sam", portfolio: "https://example.com/sam",
+      accessibilityNeeds: "Step-free access", firstHackathon: false,
+    }), resume);
+    finish({ ok: true });
+    await waitFor(() => expect(onSubmitted).toHaveBeenCalledOnce());
+  });
+
+  it("selects and removes a PDF resume", async () => {
+    const user = userEvent.setup();
+    render(<ApplicationForm onSubmitted={vi.fn()} />);
+    const input = screen.getByLabelText("Resume (optional)") as HTMLInputElement;
+    const file = new File(["%PDF-1.7"], "resume.pdf", { type: "application/pdf" });
+    await user.upload(input, file);
+    expect(input.files?.[0]).toBe(file);
+    await user.upload(input, []);
+    expect(screen.queryByRole("button", { name: "Remove resume" })).not.toBeInTheDocument();
+    await user.upload(input, file);
+    await user.click(screen.getByRole("button", { name: "Remove resume" }));
+    expect(input.files).toHaveLength(0);
+  });
+
+  it("shows an inline error for a non-PDF resume", async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    render(<ApplicationForm onSubmitted={vi.fn()} />);
+    await user.upload(screen.getByLabelText("Resume (optional)"), new File(["text"], "resume.docx"));
+    expect(screen.getByText("Please select a PDF file.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Resume (optional)")).toHaveAttribute("aria-invalid", "true");
+  });
+
   it("submits a valid application", async () => {
     const user = userEvent.setup();
     const onSubmitted = vi.fn();
