@@ -42,7 +42,7 @@ describe("submitRegistration", () => {
     vi.resetModules();
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
 
-    await expect(submitRegistration(payload)).rejects.toThrow(
+    await expect(submitRegistration(payload, null)).rejects.toThrow(
       "We couldn't submit your application. Please try again.",
     );
   });
@@ -56,18 +56,19 @@ describe("submitRegistration", () => {
     );
 
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
-    await expect(submitRegistration(payload)).resolves.toEqual({ ok: true });
+    await expect(submitRegistration(payload, "test-token")).resolves.toEqual({ ok: true });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://example.convex.cloud/api/mutation",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          path: "registrations:register",
-          args: { data: payload },
-        }),
-      }),
-    );
+    const [url, request] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("https://example.convex.cloud/api/mutation");
+    expect(request).toEqual(expect.objectContaining({ method: "POST" }));
+
+    const body = JSON.parse(String(request?.body)) as {
+      path: string;
+      args: { data: RegistrationPayload };
+    };
+    expect(body.path).toBe("registrations:register");
+    expect(body.args.data).toEqual(payload);
+    expect(request?.headers).toEqual(expect.objectContaining({ Authorization: "Bearer test-token" }));
   });
 
   it("maps server failures to a friendly error", async () => {
@@ -79,7 +80,7 @@ describe("submitRegistration", () => {
     );
 
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
-    await expect(submitRegistration(payload)).rejects.toThrow(
+    await expect(submitRegistration(payload, "test-token")).rejects.toThrow(
       "We couldn't submit your application. Please try again.",
     );
   });

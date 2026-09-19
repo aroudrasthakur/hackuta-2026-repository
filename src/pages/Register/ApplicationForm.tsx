@@ -1,4 +1,5 @@
 import { useCallback, useState, type FormEvent } from "react";
+import { useAuthToken } from "@convex-dev/auth/react";
 import { OdysseyButton } from "../../components/OdysseyButton";
 import {
   DIETARY_OPTIONS,
@@ -45,6 +46,7 @@ export function ApplicationForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const authToken = useAuthToken();
 
   const updateField = useCallback(
     <K extends keyof ApplicationFormData>(key: K, value: ApplicationFormData[K]) => {
@@ -77,7 +79,7 @@ export function ApplicationForm({
 
     setSubmitting(true);
     try {
-      await submitRegistration(validation.payload);
+      await submitRegistration(validation.payload, authToken);
       onSubmitted();
     } catch (err) {
       console.error("Registration submission failed", err);
