@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './playwright-coverage'
 
 test('event content and navigation are honest and complete', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
