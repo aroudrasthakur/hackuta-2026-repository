@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { OdysseyButton } from "../../components/OdysseyButton";
 import {
   DIETARY_OPTIONS,
@@ -23,10 +23,15 @@ import {
   labelClass,
   legendClass,
 } from "./components/FormFields";
-import { submitRegistration } from "./registerApi";
+import {
+  discardResumeUpload,
+  submitRegistration,
+  uploadResume,
+  type ResumeUploadSession,
+} from "./registerApi";
 import type { ApplicationFormData, FieldName } from "../../../shared/registration/types";
 import { INITIAL_FORM } from "../../../shared/registration/types";
-import { validateResume } from "../../../shared/registration/resume";
+import { resumeFileKey, validateResume } from "../../../shared/registration/resume";
 import {
   focusFirstInvalidField,
   toggleValue,
@@ -46,7 +51,36 @@ export function ApplicationForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resumeUpload, setResumeUpload] = useState<{
+    fileKey: string;
+    session: ResumeUploadSession;
+  } | null>(null);
   const resumeInput = useRef<HTMLInputElement>(null);
+  const resumeUploadRef = useRef(resumeUpload);
+
+  useEffect(() => {
+    resumeUploadRef.current = resumeUpload;
+  }, [resumeUpload]);
+
+  const discardPendingResume = useCallback(async () => {
+    const pending = resumeUploadRef.current;
+    if (!pending) return;
+    setResumeUpload(null);
+    await discardResumeUpload(pending.session.uploadToken);
+  }, []);
+
+  useEffect(() => {
+    const cleanupPendingUpload = () => {
+      const pending = resumeUploadRef.current;
+      if (!pending) return;
+      void discardResumeUpload(pending.session.uploadToken);
+    };
+    window.addEventListener("beforeunload", cleanupPendingUpload);
+    return () => {
+      window.removeEventListener("beforeunload", cleanupPendingUpload);
+      void discardPendingResume();
+    };
+  }, [discardPendingResume]);
 
   const updateField = useCallback(
     <K extends keyof ApplicationFormData>(key: K, value: ApplicationFormData[K]) => {
@@ -79,7 +113,22 @@ export function ApplicationForm({
 
     setSubmitting(true);
     try {
-      await submitRegistration(validation.payload, form.resume);
+      let session: ResumeUploadSession | null = null;
+      if (form.resume) {
+        const fileKey = resumeFileKey(form.resume);
+        if (resumeUpload?.fileKey === fileKey) {
+          session = resumeUpload.session;
+        } else {
+          await discardPendingResume();
+          session = await uploadResume(form.resume);
+          setResumeUpload({ fileKey, session });
+        }
+      } else {
+        await discardPendingResume();
+      }
+
+      await submitRegistration(validation.payload, session);
+      setResumeUpload(null);
       onSubmitted();
     } catch (err) {
       console.error("Registration submission failed", err);
@@ -345,18 +394,29 @@ export function ApplicationForm({
             aria-invalid={!!errors.resume}
             aria-describedby={`resume-help${errors.resume ? " resume-error" : ""}`}
             onChange={(event) => {
-              const file = event.target.files?.[0] ?? null;
-              updateField("resume", file);
-              const error = file ? validateResume(file) : undefined;
-              if (error) setErrors((prev) => ({ ...prev, resume: error }));
+              void (async () => {
+                const file = event.target.files?.[0] ?? null;
+                await discardPendingResume();
+                updateField("resume", file);
+                const error = file ? validateResume(file) : undefined;
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  if (error) next.resume = error;
+                  else delete next.resume;
+                  return next;
+                });
+              })();
             }}
           />
           <p id="resume-help" className="text-xs text-(--color-mist)">PDF only, up to 5 MB. Uploaded when you submit.</p>
           <FieldError id="resume-error" message={errors.resume} />
           {form.resume && (
             <button type="button" disabled={submitting} className="self-start underline underline-offset-4" onClick={() => {
-              updateField("resume", null);
-              if (resumeInput.current) resumeInput.current.value = "";
+              void (async () => {
+                await discardPendingResume();
+                updateField("resume", null);
+                if (resumeInput.current) resumeInput.current.value = "";
+              })();
             }}>Remove resume</button>
           )}
         </div>

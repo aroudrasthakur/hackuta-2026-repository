@@ -50,10 +50,18 @@ export default defineSchema({
   resumeUploadRequests: defineTable({
     userKey: v.string(),
     createdAt: v.number(),
-  }).index('by_user_createdAt', ['userKey', 'createdAt']),
+  })
+    .index('by_user_createdAt', ['userKey', 'createdAt'])
+    .index('by_createdAt', ['createdAt']),
 
-  verifiedResumeUploads: defineTable({
-    storageId: v.id('_storage'),
+  resumeUploadSessions: defineTable({
+    token: v.string(),
     createdAt: v.number(),
-  }).index('by_storage', ['storageId']),
+    storageId: v.optional(v.id('_storage')),
+    verifiedAt: v.optional(v.number()),
+    consumedAt: v.optional(v.number()),
+  })
+    .index('by_token', ['token'])
+    .index('by_storage', ['storageId'])
+    .index('by_createdAt', ['createdAt']),
 });

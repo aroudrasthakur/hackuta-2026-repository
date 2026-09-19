@@ -10,36 +10,28 @@ test.describe("registration", () => {
     expect(deployedCsp).toBe(contentSecurityPolicy);
 
     const resume = Buffer.from("%PDF-1.7\nTest resume\n%%EOF");
-    const uploadUrl = "https://registration-test.convex.cloud/api/storage/upload/test";
+    const uploadUrl = "https://registration-test.convex.site/resume-upload";
     let uploaded = false;
-    let verified = false;
     let submitted: Record<string, unknown> | undefined;
     await page.route("**/api/mutation", async (route) => {
       const { path, args } = route.request().postDataJSON();
-      if (path === "registrations:generateResumeUploadUrl") {
-        await route.fulfill({ json: { status: "success", value: uploadUrl } });
-      } else if (path === "registrations:register") {
+      if (path === "registrations:register") {
         expect(uploaded).toBe(true);
-        expect(verified).toBe(true);
+        expect(args.resumeUploadToken).toBe("test-upload-token");
         submitted = args.data;
         await route.fulfill({ json: { status: "success", value: { ok: true } } });
       } else {
         await route.abort();
       }
     });
-    await page.route("**/api/action", async (route) => {
-      const { path, args } = route.request().postDataJSON();
-      expect(path).toBe("registrations:verifyResumeUpload");
-      expect(args.storageId).toBe("test-resume-id");
-      expect(uploaded).toBe(true);
-      verified = true;
-      await route.fulfill({ json: { status: "success", value: { ok: true } } });
-    });
     await page.route(uploadUrl, async (route) => {
       expect(route.request().headers()["content-type"]).toBe("application/pdf");
       expect(route.request().postDataBuffer()).toEqual(resume);
       uploaded = true;
-      await route.fulfill({ json: { storageId: "test-resume-id" } });
+      await route.fulfill({
+        status: 201,
+        json: { storageId: "test-resume-id", uploadToken: "test-upload-token" },
+      });
     });
     await page.goto("/register");
     await page.getByLabel("First name", { exact: false }).fill("Sam");

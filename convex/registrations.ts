@@ -1,56 +1,93 @@
-import { action, internalMutation, mutation } from "./_generated/server";
 import { makeFunctionReference } from "convex/server";
 import type { DataModelFromSchemaDefinition, GenericMutationCtx } from "convex/server";
-import type schema from "./schema";
 import { v } from "convex/values";
+import { internalMutation, mutation } from "./_generated/server";
+import type schema from "./schema";
 import { validateRegistrationPayload } from "../shared/registration/validation";
 import type { RegistrationPayload } from "../shared/registration/types";
 import { MAX_RESUME_BYTES } from "../shared/registration/resume";
 
 type MutationCtx = GenericMutationCtx<DataModelFromSchemaDefinition<typeof schema>>;
+
 const RESUME_UPLOAD_WINDOW_MS = 10 * 60 * 1000;
 const MAX_RESUME_UPLOADS_PER_WINDOW = 5;
+const MAX_GLOBAL_RESUME_UPLOADS_PER_WINDOW = 100;
 const RESUME_UPLOAD_EXPIRY_MS = 30 * 60 * 1000;
-const PDF_MAGIC_HEADER = [0x25, 0x50, 0x44, 0x46, 0x2d] as const;
-const markResumeUploadVerifiedRef = makeFunctionReference<"mutation">(
-  "registrations:markResumeUploadVerified",
+const CLEANUP_PAGE_SIZE = 100;
+
+const cleanupExpiredResumeUploadsRef = makeFunctionReference<"mutation">(
+  "registrations:cleanupExpiredResumeUploads",
 );
-
-export const generateResumeUploadUrl = mutation({
-  args: {
-    firstName: v.string(),
-    lastName: v.string(),
-    phone: v.string(),
-  },
-  handler: async (ctx: MutationCtx, args) => {
-    const now = Date.now();
-    const userKey = normalizeRegistrantKey(args.firstName, args.lastName, args.phone);
-    const recentRequests = await ctx.db
-      .query("resumeUploadRequests")
-      .withIndex("by_user_createdAt", (q) => q.eq("userKey", userKey).gte("createdAt", now - RESUME_UPLOAD_WINDOW_MS))
-      .collect();
-
-    if (recentRequests.length >= MAX_RESUME_UPLOADS_PER_WINDOW) {
-      throw new Error("Too many resume upload attempts. Please wait a few minutes and try again.");
-    }
-
-    await ctx.db.insert("resumeUploadRequests", {
-      userKey,
-      createdAt: now,
-    });
-
-    return ctx.storage.generateUploadUrl();
-  },
-});
 
 function normalizeRegistrantKey(firstName: string, lastName: string, phone: string) {
   return `${firstName.toLowerCase().trim()}-${lastName.toLowerCase().trim()}-${phone.replace(/\D/g, "")}`;
 }
 
+export const reserveResumeUpload = internalMutation({
+  args: {
+    requestKey: v.string(),
+  },
+  handler: async (ctx: MutationCtx, { requestKey }) => {
+    const now = Date.now();
+    const windowStart = now - RESUME_UPLOAD_WINDOW_MS;
+    const [recentClientRequests, recentGlobalRequests] = await Promise.all([
+      ctx.db
+        .query("resumeUploadRequests")
+        .withIndex("by_user_createdAt", (q) => q.eq("userKey", requestKey).gte("createdAt", windowStart))
+        .collect(),
+      ctx.db
+        .query("resumeUploadRequests")
+        .withIndex("by_createdAt", (q) => q.gte("createdAt", windowStart))
+        .take(MAX_GLOBAL_RESUME_UPLOADS_PER_WINDOW),
+    ]);
+
+    if (
+      recentClientRequests.length >= MAX_RESUME_UPLOADS_PER_WINDOW ||
+      recentGlobalRequests.length >= MAX_GLOBAL_RESUME_UPLOADS_PER_WINDOW
+    ) {
+      throw new Error("Too many resume upload attempts. Please wait a few minutes and try again.");
+    }
+
+    await ctx.db.insert("resumeUploadRequests", { userKey: requestKey, createdAt: now });
+  },
+});
+
+export const recordVerifiedResumeUpload = internalMutation({
+  args: {
+    uploadToken: v.string(),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx: MutationCtx, { uploadToken, storageId }) => {
+    const [existingToken, metadata] = await Promise.all([
+      ctx.db
+        .query("resumeUploadSessions")
+        .withIndex("by_token", (q) => q.eq("token", uploadToken))
+        .first(),
+      ctx.db.system.get("_storage", storageId),
+    ]);
+    if (
+      existingToken ||
+      !metadata ||
+      metadata.size === 0 ||
+      metadata.size > MAX_RESUME_BYTES
+    ) {
+      throw new Error("Invalid resume upload.");
+    }
+    const now = Date.now();
+    await ctx.db.insert("resumeUploadSessions", {
+      token: uploadToken,
+      storageId,
+      createdAt: now,
+      verifiedAt: now,
+    });
+  },
+});
+
 async function upsertRegistration(
   ctx: MutationCtx,
   data: RegistrationPayload,
   status: "draft" | "submitted",
+  resumeUploadToken?: string,
 ) {
   const userId = `mock-user:${normalizeRegistrantKey(data.firstName, data.lastName, data.phone)}`;
   const { hackathonId, resumeStorageId: rawStorageId, ...fields } = data;
@@ -58,41 +95,56 @@ async function upsertRegistration(
     .query("registrations")
     .withIndex("by_user_hackathon", (q) => q.eq("userId", userId).eq("hackathonId", hackathonId))
     .first();
-  // _storage IDs must use the system-table reader.
-  const resumeStorageId = rawStorageId ? ctx.db.system.normalizeId("_storage", rawStorageId) : undefined;
+  const resumeStorageId = rawStorageId
+    ? ctx.db.system.normalizeId("_storage", rawStorageId)
+    : undefined;
+
   if (rawStorageId) {
     const now = Date.now();
-    const metadata = resumeStorageId ? await ctx.db.system.get(resumeStorageId) : null;
+    const metadata = resumeStorageId
+      ? await ctx.db.system.get("_storage", resumeStorageId)
+      : null;
     const attachment = resumeStorageId
-      ? await ctx.db.query("registrations")
+      ? await ctx.db
+        .query("registrations")
         .withIndex("by_resume", (q) => q.eq("answers.resumeStorageId", resumeStorageId))
         .first()
       : null;
+
     if (attachment && attachment._id !== existing?._id) {
       throw new Error("This resume is already attached to another application.");
     }
-    const retainingResume = !!attachment;
-    const verification = resumeStorageId
+
+    const retainingOwnResume = !!attachment && attachment._id === existing?._id;
+    const session = resumeUploadToken
       ? await ctx.db
-        .query("verifiedResumeUploads")
-        .withIndex("by_storage", (q) => q.eq("storageId", resumeStorageId))
+        .query("resumeUploadSessions")
+        .withIndex("by_token", (q) => q.eq("token", resumeUploadToken))
         .first()
       : null;
+    const validSession = !!(
+      session &&
+      !session.consumedAt &&
+      session.storageId === resumeStorageId &&
+      session.verifiedAt &&
+      session.createdAt >= now - RESUME_UPLOAD_EXPIRY_MS
+    );
+
     if (
       !metadata ||
       metadata.contentType !== "application/pdf" ||
       metadata.size === 0 ||
       metadata.size > MAX_RESUME_BYTES ||
-      (!retainingResume && (
-        metadata._creationTime < now - RESUME_UPLOAD_EXPIRY_MS ||
-        !verification ||
-        verification.createdAt < now - RESUME_UPLOAD_EXPIRY_MS
-      ))
+      (!retainingOwnResume && !validSession)
     ) {
-      throw new Error("Please upload a PDF resume of 5 MB or smaller.");
+      throw new Error("Please upload a valid PDF resume of 5 MB or smaller.");
     }
-    if (verification) await ctx.db.delete(verification._id);
+
+    if (validSession && session) {
+      await ctx.db.patch(session._id, { consumedAt: now });
+    }
   }
+
   const answers = { ...fields, resumeStorageId: resumeStorageId ?? undefined };
 
   if (existing) {
@@ -124,102 +176,84 @@ async function upsertRegistration(
 
 function parseRegistrationData(data: unknown): RegistrationPayload {
   const result = validateRegistrationPayload(data);
-
-  if (!result.success) {
-    throw new Error("Invalid registration data.");
-  }
-
+  if (!result.success) throw new Error("Invalid registration data.");
   return result.payload;
 }
 
+const registrationArgs = {
+  data: v.any(),
+  resumeUploadToken: v.optional(v.string()),
+};
+
 export const register = mutation({
-  args: {
-    data: v.any(),
-  },
-  handler: async (ctx, { data }) =>
-    upsertRegistration(ctx, parseRegistrationData(data), "submitted"),
+  args: registrationArgs,
+  handler: async (ctx, { data, resumeUploadToken }) =>
+    upsertRegistration(ctx, parseRegistrationData(data), "submitted", resumeUploadToken),
 });
 
 export const submitRegistration = mutation({
-  args: {
-    data: v.any(),
-  },
-  handler: async (ctx, { data }) =>
-    upsertRegistration(ctx, parseRegistrationData(data), "submitted"),
+  args: registrationArgs,
+  handler: async (ctx, { data, resumeUploadToken }) =>
+    upsertRegistration(ctx, parseRegistrationData(data), "submitted", resumeUploadToken),
 });
 
 export const saveDraft = mutation({
-  args: {
-    data: v.any(),
-  },
-  handler: async (ctx, { data }) =>
-    upsertRegistration(ctx, parseRegistrationData(data), "draft"),
+  args: registrationArgs,
+  handler: async (ctx, { data, resumeUploadToken }) =>
+    upsertRegistration(ctx, parseRegistrationData(data), "draft", resumeUploadToken),
 });
 
 export const deleteResumeUpload = mutation({
-  args: {
-    storageId: v.string(),
-  },
-  handler: async (ctx, { storageId }) => {
-    const now = Date.now();
-    const normalizedStorageId = ctx.db.system.normalizeId("_storage", storageId);
-    if (!normalizedStorageId) return { ok: true as const };
-    // A request may commit successfully even if its response never reaches the client.
-    // Cleanup must never remove a file already saved with an application.
-    const attachment = await ctx.db.query("registrations")
-      .withIndex("by_resume", (q) => q.eq("answers.resumeStorageId", normalizedStorageId))
+  args: { uploadToken: v.string() },
+  handler: async (ctx: MutationCtx, { uploadToken }) => {
+    const session = await ctx.db
+      .query("resumeUploadSessions")
+      .withIndex("by_token", (q) => q.eq("token", uploadToken))
       .first();
-    if (attachment) return { ok: true as const };
-    const verification = await ctx.db
-      .query("verifiedResumeUploads")
-      .withIndex("by_storage", (q) => q.eq("storageId", normalizedStorageId))
-      .first();
-    if (verification) {
-      await ctx.db.delete(verification._id);
+    if (!session || session.consumedAt) return { ok: true as const };
+
+    if (session.storageId) {
+      const attachment = await ctx.db
+        .query("registrations")
+        .withIndex("by_resume", (q) => q.eq("answers.resumeStorageId", session.storageId))
+        .first();
+      if (!attachment) await ctx.storage.delete(session.storageId);
     }
-    const metadata = await ctx.db.system.get(normalizedStorageId);
+    await ctx.db.delete(session._id);
+    return { ok: true as const };
+  },
+});
+
+export const cleanupExpiredResumeUploads = internalMutation({
+  args: {},
+  handler: async (ctx: MutationCtx) => {
+    const cutoff = Date.now() - RESUME_UPLOAD_EXPIRY_MS;
+    const expiredSessions = await ctx.db
+      .query("resumeUploadSessions")
+      .withIndex("by_createdAt", (q) => q.lt("createdAt", cutoff))
+      .take(CLEANUP_PAGE_SIZE);
+    for (const session of expiredSessions) {
+      if (session.storageId) {
+        const attachment = await ctx.db
+          .query("registrations")
+          .withIndex("by_resume", (q) => q.eq("answers.resumeStorageId", session.storageId))
+          .first();
+        if (!attachment) await ctx.storage.delete(session.storageId);
+      }
+      await ctx.db.delete(session._id);
+    }
+
+    const expiredRequests = await ctx.db
+      .query("resumeUploadRequests")
+      .withIndex("by_createdAt", (q) => q.lt("createdAt", cutoff))
+      .take(CLEANUP_PAGE_SIZE);
+    for (const request of expiredRequests) await ctx.db.delete(request._id);
+
     if (
-      metadata &&
-      metadata.contentType === "application/pdf" &&
-      metadata._creationTime >= now - RESUME_UPLOAD_EXPIRY_MS
+      expiredSessions.length === CLEANUP_PAGE_SIZE ||
+      expiredRequests.length === CLEANUP_PAGE_SIZE
     ) {
-      await ctx.storage.delete(normalizedStorageId);
+      await ctx.scheduler.runAfter(0, cleanupExpiredResumeUploadsRef, {});
     }
-    return { ok: true as const };
-  },
-});
-
-export const verifyResumeUpload = action({
-  args: {
-    storageId: v.id("_storage"),
-  },
-  handler: async (ctx, { storageId }) => {
-    const file = await ctx.storage.get(storageId);
-    if (!file) return { ok: false as const };
-    const bytes = new Uint8Array(await file.slice(0, PDF_MAGIC_HEADER.length).arrayBuffer());
-    const isPdf = PDF_MAGIC_HEADER.every((byte, index) => bytes[index] === byte);
-    if (!isPdf) return { ok: false as const };
-    await ctx.runMutation(markResumeUploadVerifiedRef, { storageId });
-    return { ok: true as const };
-  },
-});
-
-export const markResumeUploadVerified = internalMutation({
-  args: {
-    storageId: v.id("_storage"),
-  },
-  handler: async (ctx, { storageId }) => {
-    const existing = await ctx.db
-      .query("verifiedResumeUploads")
-      .withIndex("by_storage", (q) => q.eq("storageId", storageId))
-      .first();
-    if (existing) {
-      await ctx.db.patch(existing._id, { createdAt: Date.now() });
-      return;
-    }
-    await ctx.db.insert("verifiedResumeUploads", {
-      storageId,
-      createdAt: Date.now(),
-    });
   },
 });

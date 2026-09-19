@@ -31,114 +31,88 @@ const payload: RegistrationPayload = {
   hackathonId: "hackuta-2026",
 };
 
-describe("submitRegistration", () => {
+const session = { storageId: "resume-id", uploadToken: "upload-token" };
+
+describe("uploadResume", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
   it.each([
-    { value: { ok: false } },
-    { status: "error" },
-    "invalid-json",
-  ])("cleans up when verification rejects or fails (%j)", async (verification) => {
+    { storageId: 42, uploadToken: "token" },
+    { storageId: "", uploadToken: "token" },
+    { storageId: "resume-id", uploadToken: "" },
+    {},
+  ])("rejects malformed upload responses (%j)", async (response) => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
     vi.resetModules();
     const fetchMock = vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ value: "https://upload.example" })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ storageId: "resume-id" })))
-      .mockResolvedValueOnce(new Response(typeof verification === "string" ? verification : JSON.stringify(verification)))
-      .mockRejectedValueOnce(new Error("cleanup unavailable"));
-    const { submitRegistration } = await import("../../src/pages/Register/registerApi");
-    await expect(submitRegistration(payload, new File(["%PDF-1.7"], "resume.pdf"))).rejects.toThrow();
-    expect(fetchMock).toHaveBeenCalledTimes(4);
-    expect(JSON.parse(String(fetchMock.mock.calls[3]?.[1]?.body)).path).toBe("registrations:deleteResumeUpload");
+      .mockResolvedValueOnce(new Response(JSON.stringify(response), { status: 201 }));
+    const { uploadResume } = await import("../../src/pages/Register/registerApi");
+    await expect(uploadResume(new File(["%PDF-1.7"], "resume.pdf"))).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it.each([{ storageId: 42 }, { storageId: "" }, {}])("rejects malformed upload responses (%j)", async (response) => {
-    vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
-    vi.resetModules();
-    const fetchMock = vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ value: "https://upload.example" })))
-      .mockResolvedValueOnce(new Response(JSON.stringify(response)));
-    const { submitRegistration } = await import("../../src/pages/Register/registerApi");
-    await expect(submitRegistration(payload, new File(["%PDF-1.7"], "resume.pdf"))).rejects.toThrow();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it("rejects an invalid file before requesting an upload URL", async () => {
+  it("rejects an invalid file before contacting the upload API", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch");
-    const { submitRegistration } = await import("../../src/pages/Register/registerApi");
-    await expect(submitRegistration(payload, new File(["text"], "resume.txt"))).rejects.toThrow("Please select a PDF");
+    const { uploadResume } = await import("../../src/pages/Register/registerApi");
+    await expect(uploadResume(new File(["text"], "resume.txt"))).rejects.toThrow("Please select a PDF");
     expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("reuses a submitted file without uploading or verifying it again", async () => {
-    vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
-    vi.resetModules();
-    const fetchMock = vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ value: "https://upload.example" })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ storageId: "resume-id" })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })))
-      .mockResolvedValueOnce(new Response("invalid-json", { status: 500 }));
-    const { submitRegistration } = await import("../../src/pages/Register/registerApi");
-    const resume = new File(["%PDF-1.7"], "resume.pdf");
-    await submitRegistration(payload, resume);
-    await submitRegistration(payload, resume);
-    await expect(submitRegistration(payload, resume)).rejects.toThrow();
-    expect(fetchMock).toHaveBeenCalledTimes(6);
-    expect(JSON.parse(String(fetchMock.mock.calls[4]?.[1]?.body)).args.data.resumeStorageId).toBe("resume-id");
-  });
-
-  it("uploads a new PDF after failed submission cleanup", async () => {
-    vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
-    vi.resetModules();
-    const fetchMock = vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ value: "https://upload.example" })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ storageId: "resume-id" })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ value: { ok: true } })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "error" }), { status: 500 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ value: { ok: true } })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ value: "https://upload.example" })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ storageId: "resume-id-2" })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ value: { ok: true } })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ value: { ok: true } })));
-    const { submitRegistration } = await import("../../src/pages/Register/registerApi");
-    const resume = new File(["%PDF-1.7"], "resume.pdf", { type: "application/pdf" });
-    await expect(submitRegistration(payload, resume)).rejects.toThrow();
-    await expect(submitRegistration(payload, resume)).resolves.toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledTimes(9);
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://upload.example", {
-      method: "POST", headers: { "Content-Type": "application/pdf" }, body: resume,
-    });
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).args).toEqual({
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      phone: payload.phone,
-    });
-    expect(JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body)).path).toBe("registrations:verifyResumeUpload");
-    expect(JSON.parse(String(fetchMock.mock.calls[4]?.[1]?.body)).path).toBe("registrations:deleteResumeUpload");
-    expect(JSON.parse(String(fetchMock.mock.calls[8]?.[1]?.body)).args.data.resumeStorageId).toBe("resume-id-2");
   });
 
   it("does not submit the application when uploading fails", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
     vi.resetModules();
     const fetchMock = vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ value: "https://upload.example" })))
       .mockResolvedValueOnce(new Response("failed", { status: 500 }));
-    const { submitRegistration } = await import("../../src/pages/Register/registerApi");
-    await expect(submitRegistration(payload, new File(["%PDF-1.7"], "resume.pdf"))).rejects.toThrow();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const { uploadResume } = await import("../../src/pages/Register/registerApi");
+    await expect(uploadResume(new File(["%PDF-1.7"], "resume.pdf"))).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("returns a server-issued upload session", async () => {
+    vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
+    vi.resetModules();
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify(session), { status: 201 }));
+    const { uploadResume } = await import("../../src/pages/Register/registerApi");
+    await expect(uploadResume(new File(["%PDF-1.7"], "resume.pdf"))).resolves.toEqual(session);
+  });
+});
+
+describe("submitRegistration", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+  });
+
+  it("submits with an existing upload session", async () => {
+    vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
+    vi.resetModules();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ value: { ok: true } })),
+    );
+    const { submitRegistration } = await import("../../src/pages/Register/registerApi");
+    await expect(submitRegistration(payload, session)).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.convex.cloud/api/mutation",
+      expect.objectContaining({
+        body: JSON.stringify({
+          path: "registrations:register",
+          args: {
+            data: { ...payload, resumeStorageId: "resume-id" },
+            resumeUploadToken: "upload-token",
+          },
+        }),
+      }),
+    );
   });
 
   it("throws a friendly error when Convex is not configured", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "");
     vi.resetModules();
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
-
     await expect(submitRegistration(payload)).rejects.toThrow(
       "We couldn't submit your application. Please try again.",
     );
@@ -147,22 +121,16 @@ describe("submitRegistration", () => {
   it("submits a valid payload to Convex", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
     vi.resetModules();
-
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ status: "success", value: { ok: true } }), { status: 200 }),
     );
-
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
     await expect(submitRegistration(payload)).resolves.toEqual({ ok: true });
-
     expect(fetchMock).toHaveBeenCalledWith(
       "https://example.convex.cloud/api/mutation",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({
-          path: "registrations:register",
-          args: { data: payload },
-        }),
+        body: JSON.stringify({ path: "registrations:register", args: { data: payload } }),
       }),
     );
   });
@@ -170,14 +138,38 @@ describe("submitRegistration", () => {
   it("maps server failures to a friendly error", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
     vi.resetModules();
-
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ status: "error" }), { status: 500 }),
     );
-
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
     await expect(submitRegistration(payload)).rejects.toThrow(
       "We couldn't submit your application. Please try again.",
+    );
+  });
+});
+
+describe("discardResumeUpload", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("requests server cleanup for a pending upload token", async () => {
+    vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
+    vi.resetModules();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ value: { ok: true } })),
+    );
+    const { discardResumeUpload } = await import("../../src/pages/Register/registerApi");
+    await discardResumeUpload("upload-token");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.convex.cloud/api/mutation",
+      expect.objectContaining({
+        body: JSON.stringify({
+          path: "registrations:deleteResumeUpload",
+          args: { uploadToken: "upload-token" },
+        }),
+      }),
     );
   });
 });
