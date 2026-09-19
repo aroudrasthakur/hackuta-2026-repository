@@ -20,6 +20,9 @@ export const internalMutation = internalMutationGeneric;
 export const internalAction = internalActionGeneric;
 
 export type QueryCtx = {
+  auth: {
+    getUserIdentity: () => Promise<{ subject: string } | null>;
+  };
   db: {
     query: (table: string) => unknown;
     get: (id: unknown) => Promise<unknown>;

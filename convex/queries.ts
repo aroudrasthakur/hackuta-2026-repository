@@ -40,6 +40,43 @@ export const getRegistration = query({
 });
 
 /**
+ * Return the signed-in user's profile status without accepting a client-owned
+ * user id. The identity subject is the ownership boundary.
+ */
+export const getMyProfile = query({
+  args: { hackathonId: v.string() },
+  handler: async (ctx, { hackathonId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new Error("Unauthenticated");
+    }
+
+    const registration = await ctx.db
+      .query("registrations")
+      .withIndex("by_user_hackathon", (q) =>
+        q.eq("userId", identity.subject).eq("hackathonId", hackathonId),
+      )
+      .first();
+
+    if (!registration) {
+      return null;
+    }
+
+    return {
+      firstName: registration.answers.firstName,
+      lastName: registration.answers.lastName,
+      hackathonId: registration.hackathonId,
+      status: registration.status,
+      eligibilityStatus: registration.eligibilityStatus,
+      submittedAt: registration.submittedAt ?? null,
+      reviewedAt: registration.reviewedAt ?? null,
+      updatedAt: registration.updatedAt,
+    };
+  },
+});
+
+/**
  * Get all registrations for a hackathon (admin view).
  */
 export const getRegistrationsByHackathon = query({

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { OdysseyButton } from "../../components/OdysseyButton";
+import { Link } from "react-router-dom";
 
 export function SuccessStep() {
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -25,9 +26,15 @@ export function SuccessStep() {
         Thanks for applying to HackUTA 2026. Keep an eye on your inbox — we'll email you with
         acceptance decisions and next steps as the event gets closer.
       </p>
-      <OdysseyButton href="/" className="mt-2">
-        Back to home
-      </OdysseyButton>
+      <div className="mt-2 flex flex-wrap justify-center gap-3">
+        <OdysseyButton href="/profile">View application</OdysseyButton>
+        <Link
+          to="/"
+          className="inline-flex items-center justify-center border border-(--color-ocean) px-5 py-3 text-sm uppercase tracking-[0.1em] text-(--color-sand)"
+        >
+          Back to home
+        </Link>
+      </div>
     </div>
   );
 }
