@@ -5,6 +5,7 @@ import { ConvexAuthProvider } from '@convex-dev/auth/react'
 import { AuthBootstrap } from './components/AuthBootstrap'
 import { convexClient } from './convex/client'
 import HomePage from './pages/HomePage'
+import NotFoundPage from './pages/NotFoundPage'
 import RegisterPage from './pages/Register/RegisterPage'
 import './styles/index.css'
 
@@ -17,6 +18,7 @@ const app = (
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

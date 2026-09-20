@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { copyFileSync } from 'node:fs'
 import { beasties } from 'vite-plugin-beasties'
 import istanbul from 'vite-plugin-istanbul'
 import { contentSecurityPolicy } from './security/csp.ts'
@@ -31,6 +32,12 @@ export default defineConfig({
     }),
     inlineCriticalShell(),
     asyncCssForCsp(),
+    {
+      name: 'spa-404',
+      closeBundle() {
+        copyFileSync('dist/index.html', 'dist/404.html')
+      },
+    },
   ].filter(Boolean),
   server: { port: 5173, strictPort: true },
   preview: {

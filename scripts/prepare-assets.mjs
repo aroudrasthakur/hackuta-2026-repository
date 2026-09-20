@@ -17,6 +17,14 @@ const ILLUSTRATIONS = [
   { name: "feast-clear", maxEdge: 1400 },
   { name: "temple-clear", maxEdge: 1800 },
   { name: "pillars-clear", maxEdge: 1800 },
+  { name: "giant", maxEdge: 1800 },
+  { name: "giant-clear", maxEdge: 1800 },
+  { name: "ground", maxEdge: 2400 },
+  { name: "ground-clear", maxEdge: 2400 },
+  { name: "trees-left", maxEdge: 1600 },
+  { name: "trees-left-clear", maxEdge: 1600 },
+  { name: "trees-right", maxEdge: 1600 },
+  { name: "trees-right-clear", maxEdge: 1600 },
 ];
 
 async function fileExists(filePath) {

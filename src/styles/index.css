@@ -761,6 +761,7 @@
 @utility header-actions {
   flex-shrink:0;
   min-height:36px;
+  gap:12px;
 }
 
 @utility header-mlh-badge {
@@ -2516,6 +2517,219 @@
   @media (prefers-reduced-motion: reduce) {
     .heat-wave-text {
       filter: none;
+    }
+  }
+}
+
+@layer components {
+  .lost-page {
+    position: relative;
+    isolation: isolate;
+    min-height: 100svh;
+    overflow: hidden;
+    background: var(--night);
+    color: var(--light);
+    --lost-ground-height: clamp(72px, 13vh, 150px);
+    --lost-giant-top: 0px;
+  }
+
+  .lost-page[data-theme="clay"] {
+    background: var(--clay);
+    color: var(--ink);
+  }
+
+  .lost-art {
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+
+  .lost-page[data-art-ready="true"] .lost-art {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lost-art {
+      transition: none;
+    }
+  }
+
+  .lost-art img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: none;
+  }
+
+  .lost-art .lost-art-on-light {
+    display: none;
+  }
+
+  .lost-page[data-theme="clay"] .lost-art .lost-art-on-dark {
+    display: none;
+  }
+
+  .lost-page[data-theme="clay"] .lost-art .lost-art-on-light {
+    display: block;
+  }
+
+  .lost-page[data-theme="clay"] .lost-trees-left,
+  .lost-page[data-theme="clay"] .lost-trees-right,
+  .lost-page[data-theme="clay"] .lost-giant,
+  .lost-page[data-theme="clay"] .lost-ground {
+    mix-blend-mode: multiply;
+  }
+
+  .lost-ground {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    width: 100%;
+    height: var(--lost-ground-height);
+  }
+
+  .lost-ground img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+  }
+
+  .lost-trees-left,
+  .lost-trees-right {
+    position: absolute;
+    bottom: calc(var(--lost-ground-height) + 8px);
+    z-index: 2;
+    height: calc((100svh - var(--lost-ground-height) - var(--lost-giant-top)) * 0.7);
+  }
+
+  .lost-trees-left {
+    left: 0;
+    width: calc((100svh - var(--lost-ground-height) - var(--lost-giant-top)) * 0.7 * 1600 / 1302);
+  }
+
+  .lost-trees-right {
+    right: 0;
+    width: calc((100svh - var(--lost-ground-height) - var(--lost-giant-top)) * 0.7 * 1600 / 1434);
+  }
+
+  .lost-trees-left img,
+  .lost-trees-right img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .lost-trees-left img {
+    object-position: left bottom;
+  }
+
+  .lost-trees-right img {
+    object-position: right bottom;
+  }
+
+  .lost-giant {
+    position: absolute;
+    top: var(--lost-giant-top);
+    bottom: var(--lost-ground-height);
+    left: min(16vw, 260px);
+    z-index: 3;
+    width: calc((100svh - var(--lost-ground-height) - var(--lost-giant-top)) * 841 / 1800);
+    height: auto;
+  }
+
+  .lost-giant img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: left top;
+  }
+
+  .lost-copy {
+    position: absolute;
+    z-index: 4;
+    left: 50%;
+    top: 46%;
+    translate: -50% -50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: min(92vw, 520px);
+    padding-inline: 16px;
+    font-family: var(--font-sans);
+  }
+
+  .lost-kicker {
+    margin: 0 0 12px;
+    font-family: var(--font-sans);
+    font-size: clamp(13px, 1.2vw, 16px);
+    font-weight: 700;
+    letter-spacing: .18em;
+    line-height: 1;
+    color: var(--mist);
+  }
+
+  .lost-page[data-theme="clay"] .lost-kicker {
+    color: var(--ocean);
+  }
+
+  .lost-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(92px, 16vw, 168px);
+    font-weight: 400;
+    letter-spacing: .035em;
+    line-height: .88;
+  }
+
+  .lost-message {
+    margin: 18px 0 32px;
+    max-width: 22em;
+    font-family: var(--font-sans);
+    font-size: clamp(17px, 1.7vw, 22px);
+    font-weight: 400;
+    letter-spacing: .02em;
+    line-height: 1.5;
+  }
+
+  .lost-copy .odyssey-btn {
+    min-width: min(100%, 240px);
+  }
+
+  @media (max-width: 899px) {
+    .lost-trees-left {
+      width: min(32vw, 280px);
+    }
+
+    .lost-trees-right {
+      width: min(30vw, 260px);
+    }
+
+    .lost-giant {
+      left: min(16vw, 140px);
+    }
+  }
+
+  @media (max-width: 639px) {
+    .lost-trees-left,
+    .lost-trees-right {
+      width: min(40vw, 180px);
+    }
+
+    .lost-giant {
+      left: 4vw;
+    }
+
+    .lost-copy {
+      width: min(90vw, 360px);
+    }
+
+    .lost-title {
+      font-size: clamp(72px, 22vw, 104px);
     }
   }
 }
