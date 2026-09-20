@@ -2541,6 +2541,18 @@
   .lost-art {
     pointer-events: none;
     user-select: none;
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+
+  .lost-page[data-art-ready="true"] .lost-art {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lost-art {
+      transition: none;
+    }
   }
 
   .lost-art img {
@@ -2713,8 +2725,6 @@
     }
 
     .lost-copy {
-      top: calc(var(--header-height) + 16px);
-      translate: -50% 0;
       width: min(90vw, 360px);
     }
 
