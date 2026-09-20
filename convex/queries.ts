@@ -22,6 +22,12 @@ export const getUserByEmail = query({
 export const getRegistrationsByUser = query({
   args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity || identity.subject !== userId) {
+      throw new Error("Unauthorized");
+    }
+
     return await ctx.db
       .query("registrations")
       .withIndex("by_user_hackathon", (q) => q.eq("userId", userId))
@@ -35,7 +41,19 @@ export const getRegistrationsByUser = query({
 export const getRegistration = query({
   args: { registrationId: v.id("registrations") },
   handler: async (ctx, { registrationId }) => {
-    return await ctx.db.get(registrationId);
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const registration = await ctx.db.get(registrationId);
+
+    if (!registration || registration.userId !== identity.subject) {
+      return null;
+    }
+
+    return registration;
   },
 });
 

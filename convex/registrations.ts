@@ -19,10 +19,6 @@ const cleanupExpiredResumeUploadsRef = makeFunctionReference<"mutation">(
   "registrations:cleanupExpiredResumeUploads",
 );
 
-function normalizeRegistrantKey(firstName: string, lastName: string, phone: string) {
-  return `${firstName.toLowerCase().trim()}-${lastName.toLowerCase().trim()}-${phone.replace(/\D/g, "")}`;
-}
-
 export const reserveResumeUpload = internalMutation({
   args: {
     requestKey: v.string(),
@@ -90,7 +86,13 @@ async function upsertRegistration(
   status: "draft" | "submitted",
   resumeUploadToken?: string,
 ) {
-  const userId = `mock-user:${normalizeRegistrantKey(data.firstName, data.lastName, data.phone)}`;
+  const identity = await ctx.auth.getUserIdentity();
+
+  if (!identity) {
+    throw new Error("Authentication required.");
+  }
+
+  const userId = identity.subject;
   const { hackathonId, resumeStorageId: rawStorageId, ...fields } = data;
   const existing = await ctx.db
     .query("registrations")
