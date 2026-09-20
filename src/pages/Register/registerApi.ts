@@ -3,10 +3,19 @@ import type { RegistrationPayload } from "../../../shared/registration/types";
 import { validateResume } from "../../../shared/registration/resume";
 import { getConvexClient, normalizeConvexUrl } from "../../convex/client";
 
+const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === "true";
+
 function getConvexSiteUrl() {
   const convexUrl = normalizeConvexUrl(import.meta.env.VITE_CONVEX_URL);
+  if (USE_MOCK_API) {
+    return convexUrl?.replace(".convex.cloud", ".convex.site");
+  }
   return normalizeConvexUrl(import.meta.env.VITE_CONVEX_SITE_URL)
     || convexUrl?.replace(".convex.cloud", ".convex.site");
+}
+
+function getConvexUrl() {
+  return normalizeConvexUrl(import.meta.env.VITE_CONVEX_URL);
 }
 
 const SUBMIT_ERROR_MESSAGE = "We couldn't submit your application. Please try again.";
@@ -19,11 +28,43 @@ export type ResumeUploadSession = {
   uploadToken: string;
 };
 
+async function callMockMutation<T>(
+  mutationPath: string,
+  args: Record<string, unknown>,
+  authToken: string | null,
+): Promise<T> {
+  const convexUrl = getConvexUrl();
+  if (!convexUrl || !authToken) {
+    throw new Error(SUBMIT_ERROR_MESSAGE);
+  }
+
+  const response = await fetch(`${convexUrl}/api/mutation`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify({ path: mutationPath, args }),
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data.status === "error") {
+    throw new Error(SUBMIT_ERROR_MESSAGE);
+  }
+
+  return (data.value ?? data) as T;
+}
+
 async function callConvexMutation<T>(
+  mutationPath: string,
   mutation: typeof registerRef | typeof deleteResumeUploadRef,
   args: Record<string, unknown>,
   authToken: string | null,
 ): Promise<T> {
+  if (USE_MOCK_API) {
+    return callMockMutation<T>(mutationPath, args, authToken);
+  }
+
   const client = getConvexClient();
   if (!client || !authToken) {
     throw new Error(SUBMIT_ERROR_MESSAGE);
@@ -69,6 +110,20 @@ export async function uploadResume(file: File): Promise<ResumeUploadSession> {
 }
 
 export async function discardResumeUpload(uploadToken: string) {
+  if (USE_MOCK_API) {
+    const convexUrl = getConvexUrl();
+    if (!convexUrl) return;
+    await fetch(`${convexUrl}/api/mutation`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: "registrations:deleteResumeUpload",
+        args: { uploadToken },
+      }),
+    }).catch(() => undefined);
+    return;
+  }
+
   const client = getConvexClient();
   if (!client) return;
   await client.mutation(deleteResumeUploadRef, { uploadToken }).catch(() => undefined);
@@ -79,7 +134,7 @@ export async function submitRegistration(
   authToken: string | null,
   resumeSession: ResumeUploadSession | null = null,
 ) {
-  return callConvexMutation<{ ok: true }>(registerRef, {
+  return callConvexMutation<{ ok: true }>("registrations:register", registerRef, {
     data: resumeSession ? { ...payload, resumeStorageId: resumeSession.storageId } : payload,
     ...(resumeSession ? { resumeUploadToken: resumeSession.uploadToken } : {}),
   }, authToken);

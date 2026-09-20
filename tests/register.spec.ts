@@ -20,13 +20,28 @@ test.describe("registration", () => {
       failedRequests.push(`${request.method()} ${request.url()}: ${request.failure()?.errorText}`);
     });
     await page.route("**/api/mutation", async (route) => {
-      const { path, args } = route.request().postDataJSON();
+      const request = route.request();
+      if (request.method() === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          },
+        });
+        return;
+      }
+      const { path, args } = request.postDataJSON();
       if (path === "registrations:register") {
         expect(uploaded).toBe(true);
-        authorization = route.request().headers().authorization;
+        authorization = request.headers().authorization;
         expect(args.resumeUploadToken).toBe("test-upload-token");
         submitted = args.data;
-        await route.fulfill({ json: { status: "success", value: { ok: true } } });
+        await route.fulfill({
+          headers: { "Access-Control-Allow-Origin": "*" },
+          json: { status: "success", value: { ok: true } },
+        });
       } else {
         await route.abort();
       }

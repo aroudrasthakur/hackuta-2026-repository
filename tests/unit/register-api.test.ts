@@ -107,6 +107,21 @@ describe("uploadResume", () => {
       expect.any(Object),
     );
   });
+
+  it("derives the upload URL from VITE_CONVEX_URL when mock API is enabled", async () => {
+    vi.stubEnv("VITE_CONVEX_URL", "https://registration-test.convex.cloud");
+    vi.stubEnv("VITE_CONVEX_SITE_URL", "https://real-deployment.convex.site");
+    vi.stubEnv("VITE_USE_MOCK_API", "true");
+    vi.resetModules();
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify(session), { status: 201 }));
+    const { uploadResume } = await import("../../src/pages/Register/registerApi");
+    await uploadResume(new File(["%PDF-1.7"], "resume.pdf"));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://registration-test.convex.site/resume-upload",
+      expect.any(Object),
+    );
+  });
 });
 
 describe("submitRegistration", () => {
@@ -118,6 +133,7 @@ describe("submitRegistration", () => {
 
   it("submits with an existing upload session", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
+    vi.stubEnv("VITE_USE_MOCK_API", "false");
     vi.resetModules();
     mutationMock.mockResolvedValue({ ok: true });
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
@@ -133,6 +149,7 @@ describe("submitRegistration", () => {
 
   it("throws a friendly error when Convex is not configured", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "");
+    vi.stubEnv("VITE_USE_MOCK_API", "false");
     vi.resetModules();
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
     await expect(submitRegistration(payload, null)).rejects.toThrow(
@@ -142,6 +159,7 @@ describe("submitRegistration", () => {
 
   it("submits a valid payload to Convex", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
+    vi.stubEnv("VITE_USE_MOCK_API", "false");
     vi.resetModules();
     mutationMock.mockResolvedValue({ ok: true });
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
@@ -151,6 +169,7 @@ describe("submitRegistration", () => {
 
   it("maps server failures to a friendly error", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
+    vi.stubEnv("VITE_USE_MOCK_API", "false");
     vi.resetModules();
     const serverError = new Error("server failure");
     mutationMock.mockRejectedValue(serverError);
@@ -171,6 +190,7 @@ describe("discardResumeUpload", () => {
 
   it("ignores cleanup failures", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
+    vi.stubEnv("VITE_USE_MOCK_API", "false");
     vi.resetModules();
     mutationMock.mockRejectedValue(new Error("offline"));
     const { discardResumeUpload } = await import("../../src/pages/Register/registerApi");
@@ -179,6 +199,7 @@ describe("discardResumeUpload", () => {
 
   it("requests server cleanup for a pending upload token", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
+    vi.stubEnv("VITE_USE_MOCK_API", "false");
     vi.resetModules();
     mutationMock.mockResolvedValue({ ok: true });
     const { discardResumeUpload } = await import("../../src/pages/Register/registerApi");

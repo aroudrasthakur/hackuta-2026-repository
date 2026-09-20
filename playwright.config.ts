@@ -23,6 +23,7 @@ export default defineConfig({
       ? `node ./node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port ${port}`
       : `npm run dev -- --port ${port}`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    // Production-build tests rely on preview CSP headers; don't reuse a stale server.
+    reuseExistingServer: !process.env.CI && !useProductionBuild,
   },
 })

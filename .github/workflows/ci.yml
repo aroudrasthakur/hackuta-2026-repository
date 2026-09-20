@@ -46,8 +46,9 @@ jobs:
 
       - name: Build production application
         env:
-          # Browser tests intercept this endpoint; no real deployment is contacted.
+          # Browser tests intercept these endpoints; no real deployment is contacted.
           VITE_CONVEX_URL: https://registration-test.convex.cloud
+          VITE_CONVEX_SITE_URL: https://registration-test.convex.site
           VITE_USE_MOCK_API: "true"
         run: npm run build
 
