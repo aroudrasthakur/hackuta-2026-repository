@@ -19,11 +19,13 @@ export default async function handler(req: ProfileRequest, res: ProfileResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const emailHeader = req.headers["x-hackuta-email"];
-  const email = Array.isArray(emailHeader) ? emailHeader[0] : emailHeader;
+  const authorizationHeader = req.headers.authorization;
+  const authorization = Array.isArray(authorizationHeader)
+    ? authorizationHeader[0]
+    : authorizationHeader;
   const convexUrl = process.env.CONVEX_URL;
 
-  if (!email || !convexUrl) {
+  if (!authorization || !convexUrl) {
     return res.status(401).json({ error: "Authentication required" });
   }
 
@@ -31,11 +33,12 @@ export default async function handler(req: ProfileRequest, res: ProfileResponse)
     const response = await fetch(`${convexUrl}/api/query`, {
       method: "POST",
       headers: {
+        Authorization: authorization,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        path: "queries:getRegistrationByEmail",
-        args: { email, hackathonId: HACKATHON_ID },
+        path: "queries:getMyProfile",
+        args: { hackathonId: HACKATHON_ID },
       }),
     });
 

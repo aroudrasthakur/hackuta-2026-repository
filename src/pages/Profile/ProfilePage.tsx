@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "../../components/art/Logo";
-import { clearStoredEmail, getStoredEmail } from "../../utils/session";
 
 type Profile = {
   firstName: string;
@@ -41,13 +40,10 @@ function formatDate(timestamp: number | null) {
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "empty" | "error" | "auth">(() =>
-    getStoredEmail() ? "loading" : "auth",
-  );
+  const [state, setState] = useState<"loading" | "ready" | "empty" | "error" | "auth">("loading");
   const navigate = useNavigate();
 
   const signOut = () => {
-    clearStoredEmail();
     setProfile(null);
     setState("auth");
     navigate("/register", { replace: true });
@@ -55,20 +51,13 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let active = true;
-    const email = getStoredEmail();
-
-    if (!email) {
-      return;
-    }
 
     const controller = new AbortController();
 
     fetch("/api/profile", {
       signal: controller.signal,
-      headers: {
-        Accept: "application/json",
-        "X-HackUTA-Email": email,
-      },
+      credentials: "include",
+      headers: { Accept: "application/json" },
     })
       .then(async (response) => {
         if (response.status === 401) {
