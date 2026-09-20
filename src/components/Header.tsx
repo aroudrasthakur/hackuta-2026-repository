@@ -4,6 +4,11 @@ import { PRIMARY_NAV_LINKS } from "../constants/navigation";
 import { scrollToSection } from "../utils/scrollToSection";
 import { clamp01 } from "../utils/clamp";
 
+function isAuthPath(pathname: string) {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  return path === "/login" || path === "/signup";
+}
+
 export function Header() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState("clay");
@@ -88,10 +93,20 @@ export function Header() {
   }, [open]);
 
   const navigate = (id: string) => (event: MouseEvent<HTMLAnchorElement>) => {
-    if (scrollToSection(id)) {
+    if (document.getElementById(id) && scrollToSection(id)) {
       event.preventDefault();
       setOpen(false);
     }
+  };
+
+  const goToLogin = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    setOpen(false);
+    const path = window.location.pathname.replace(/\/+$/, "") || "/";
+    if (path === "/login") return;
+    history.pushState(null, "", "/login");
+    dispatchEvent(new PopStateEvent("popstate"));
   };
 
   return (
@@ -117,7 +132,7 @@ export function Header() {
       >
         <div className="header-inner flex items-center justify-between md:grid">
           <a
-            href="#top"
+            href="/#top"
             className="header-brand"
             aria-label="HackUTA home"
             onClick={navigate("top")}
@@ -131,7 +146,7 @@ export function Header() {
             {PRIMARY_NAV_LINKS.map((link) => (
               <a
                 key={link.id}
-                href={`#${link.id}`}
+                href={`/#${link.id}`}
                 aria-current={active === link.id ? "location" : undefined}
                 onClick={navigate(link.id)}
               >
@@ -140,6 +155,14 @@ export function Header() {
             ))}
           </nav>
           <div className="header-actions flex items-center justify-end">
+            <a
+              href="/login"
+              className="header-login uppercase"
+              aria-current={isAuthPath(window.location.pathname) ? "page" : undefined}
+              onClick={goToLogin}
+            >
+              Log in
+            </a>
             <button
               ref={menuButton}
               className="menu-toggle md:hidden"
@@ -163,7 +186,7 @@ export function Header() {
           {PRIMARY_NAV_LINKS.map((link, index) => (
             <a
               key={link.id}
-              href={`#${link.id}`}
+              href={`/#${link.id}`}
               aria-current={active === link.id ? "location" : undefined}
               onClick={navigate(link.id)}
             >
@@ -172,6 +195,15 @@ export function Header() {
               <span aria-hidden="true">↗</span>
             </a>
           ))}
+          <a
+            href="/login"
+            aria-current={isAuthPath(window.location.pathname) ? "page" : undefined}
+            onClick={goToLogin}
+          >
+            <span>05</span>
+            Log in
+            <span aria-hidden="true">↗</span>
+          </a>
         </nav>
       </header>
     </>

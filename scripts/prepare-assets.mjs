@@ -51,6 +51,15 @@ try {
     optimizeIllustration('feast-clear', 1400),
     optimizeIllustration('temple-clear', 1800),
     optimizeIllustration('pillars-clear', 1800),
+    optimizeIllustration('giant', 1800),
+    optimizeIllustration('giant-clear', 1800),
+    optimizeIllustration('ground', 2400),
+    optimizeIllustration('ground-clear', 2400),
+    optimizeIllustration('trees-left', 1600),
+    optimizeIllustration('trees-left-clear', 1600),
+    optimizeIllustration('trees-right', 1600),
+    optimizeIllustration('trees-right-clear', 1600),
+    optimizeIllustration('ship-water', 1600),
   ])
 } catch (error) {
   if (error && error.code === 'ENOENT') {
