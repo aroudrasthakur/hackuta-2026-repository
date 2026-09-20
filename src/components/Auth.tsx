@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Header } from "./Header";
 
 const SHIP = { width: 1600, height: 1047 } as const;
@@ -11,20 +12,14 @@ function modeFromPath(pathname: string): AuthMode {
 }
 
 export function Auth() {
-  const [mode, setMode] = useState<AuthMode>(() =>
-    modeFromPath(window.location.pathname),
-  );
+  const location = useLocation();
+  const navigate = useNavigate();
+  const mode = modeFromPath(location.pathname);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [notice, setNotice] = useState("");
-
-  useEffect(() => {
-    const sync = () => setMode(modeFromPath(window.location.pathname));
-    window.addEventListener("popstate", sync);
-    return () => window.removeEventListener("popstate", sync);
-  }, []);
 
   useEffect(() => {
     const previous = document.title;
@@ -36,11 +31,8 @@ export function Auth() {
   }, [mode]);
 
   const switchMode = (next: AuthMode) => {
-    setMode(next);
     setNotice("");
-    const path = next === "signup" ? "/signup" : "/login";
-    history.replaceState(null, "", path);
-    dispatchEvent(new PopStateEvent("popstate"));
+    navigate(next === "signup" ? "/signup" : "/login", { replace: true });
   };
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {

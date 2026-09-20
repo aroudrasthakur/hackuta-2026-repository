@@ -2,7 +2,21 @@ import { useRef, useState, type KeyboardEvent } from "react";
 import { OliveBranch } from "./art/OliveBranch";
 import { ThemeArt } from "./art/ThemeArt";
 
-const eventDays = [
+type ScheduleEvent = {
+  at: string;
+  title: string;
+};
+
+type ScheduleDay = {
+  numeral: string;
+  chapter: string;
+  weekday: string;
+  date: string;
+  isoDate: string;
+  events: ScheduleEvent[];
+};
+
+const eventDays: ScheduleDay[] = [
   {
     numeral: "I",
     chapter: "Day One",
@@ -10,16 +24,7 @@ const eventDays = [
     date: "November 14",
     isoDate: "2026-11-14",
     events: [
-      { at: "08:00", title: "Check-in & breakfast" },
-      { at: "10:00", title: "Opening ceremony" },
-      { at: "11:00", title: "Team formation" },
-      { at: "11:30", title: "Hacking begins" },
-      { at: "12:30", title: "Lunch" },
-      { at: "14:00", title: "Workshop: Git & GitHub" },
-      { at: "16:00", title: "Sponsor tech talks" },
-      { at: "18:30", title: "Dinner" },
-      { at: "21:00", title: "Mini-event: trivia night" },
-      { at: "23:00", title: "Late-night snacks" },
+      // { at: "00:00", title: "Event name" },
     ],
   },
   {
@@ -29,14 +34,7 @@ const eventDays = [
     date: "November 15",
     isoDate: "2026-11-15",
     events: [
-      { at: "00:30", title: "Midnight mini-event" },
-      { at: "02:00", title: "Quiet hours begin" },
-      { at: "08:00", title: "Breakfast" },
-      { at: "10:00", title: "Hacking ends · submissions due" },
-      { at: "10:30", title: "Project expo" },
-      { at: "12:00", title: "Judging & lunch" },
-      { at: "13:30", title: "Closing ceremony & awards" },
-      { at: "15:00", title: "Departure" },
+      // { at: "00:00", title: "Event name" },
     ],
   },
 ];
@@ -46,16 +44,13 @@ const dayAnchors = eventDays.map((day) =>
 );
 
 function nearestDayIndex(now: number) {
-  return dayAnchors.reduce(
-    (nearest, anchor, index) => {
-      const nearestAnchor = dayAnchors[nearest];
-      return nearestAnchor === undefined ||
-        Math.abs(anchor - now) < Math.abs(nearestAnchor - now)
-        ? index
-        : nearest;
-    },
-    0,
-  );
+  return dayAnchors.reduce((nearest, anchor, index) => {
+    const nearestAnchor = dayAnchors[nearest];
+    return nearestAnchor === undefined ||
+      Math.abs(anchor - now) < Math.abs(nearestAnchor - now)
+      ? index
+      : nearest;
+  }, 0);
 }
 
 function formatTime(at: string) {
@@ -70,6 +65,47 @@ function formatTime(at: string) {
 
   const period = hours < 12 ? "AM" : "PM";
   return `${hours % 12 === 0 ? 12 : hours % 12}:${String(minutes).padStart(2, "0")} ${period}`;
+}
+
+function ScheduleTabButton({
+  day,
+  index,
+  isSelected,
+  tabRef,
+  onSelect,
+  onKeyDown,
+}: {
+  day: ScheduleDay;
+  index: number;
+  isSelected: boolean;
+  tabRef: (node: HTMLButtonElement | null) => void;
+  onSelect: () => void;
+  onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      ref={tabRef}
+      type="button"
+      role="tab"
+      id={`schedule-tab-${index + 1}`}
+      className="weekend-tab"
+      aria-selected={isSelected}
+      aria-controls={`schedule-panel-${index + 1}`}
+      tabIndex={isSelected ? 0 : -1}
+      onClick={onSelect}
+      onKeyDown={onKeyDown}
+    >
+      <span className="weekend-tab-numeral" aria-hidden="true">
+        {day.numeral}
+      </span>
+      <span className="weekend-tab-label">
+        Day {day.numeral}
+        <span className="weekend-tab-date">
+          {`${day.weekday}, ${day.date}`}
+        </span>
+      </span>
+    </button>
+  );
 }
 
 export function Schedule() {
@@ -115,37 +151,19 @@ export function Schedule() {
           role="tablist"
           aria-label="Schedule days"
         >
-          {eventDays.map((day, index) => {
-            const isSelected = index === selected;
-
-            return (
-              <button
-                key={day.isoDate}
-                ref={(node) => {
-                  tabs.current[index] = node;
-                }}
-                type="button"
-                role="tab"
-                id={`schedule-tab-${index + 1}`}
-                className="weekend-tab"
-                aria-selected={isSelected}
-                aria-controls={`schedule-panel-${index + 1}`}
-                tabIndex={isSelected ? 0 : -1}
-                onClick={() => setSelected(index)}
-                onKeyDown={moveFocus}
-              >
-                <span className="weekend-tab-numeral" aria-hidden="true">
-                  {day.numeral}
-                </span>
-                <span className="weekend-tab-label">
-                  Day {day.numeral}
-                  <span className="weekend-tab-date">
-                    {`${day.weekday}, ${day.date}`}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
+          {eventDays.map((day, index) => (
+            <ScheduleTabButton
+              key={day.isoDate}
+              day={day}
+              index={index}
+              isSelected={index === selected}
+              tabRef={(node) => {
+                tabs.current[index] = node;
+              }}
+              onSelect={() => setSelected(index)}
+              onKeyDown={moveFocus}
+            />
+          ))}
         </div>
 
         {eventDays.map((day, index) => (
@@ -162,28 +180,27 @@ export function Schedule() {
               <h3>{day.chapter}</h3>
               <p>{`${day.weekday}, ${day.date}, 2026`}</p>
             </div>
-            <ol className="weekend-timeline">
-              {day.events.map((item) => (
-                <li className="weekend-slot" key={item.at}>
-                  <time dateTime={`${day.isoDate}T${item.at}`}>
-                    {formatTime(item.at)}
-                  </time>
-                  <span>{item.title}</span>
-                </li>
-              ))}
-            </ol>
+            {day.events.length === 0 ? (
+              <p className="weekend-coming-soon">Schedule coming soon!</p>
+            ) : (
+              <ol className="weekend-timeline">
+                {day.events.map((item) => (
+                  <li className="weekend-slot" key={item.at}>
+                    <time dateTime={`${day.isoDate}T${item.at}`}>
+                      {formatTime(item.at)}
+                    </time>
+                    <span>{item.title}</span>
+                  </li>
+                ))}
+              </ol>
+            )}{" "}
           </div>
         ))}
-
-        <p className="weekend-note">
-          Times are tentative and may shift as the event draws closer.
-        </p>
-        <ThemeArt name="cave" className="weekend-art-cave theme-art--on-light" />
       </div>
 
+      <ThemeArt name="cave" className="weekend-art-cave theme-art--on-light" />
       <ThemeArt name="pillars" className="weekend-art-pillars theme-art--on-light" />
       <OliveBranch className="weekend-olive weekend-olive-top" />
-      <OliveBranch className="weekend-olive" />
       <span className="weekend-meander" data-edge="bottom" aria-hidden="true" />
     </section>
   );

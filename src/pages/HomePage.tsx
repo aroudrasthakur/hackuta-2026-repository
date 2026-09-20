@@ -1,38 +1,20 @@
-import { Header } from "./components/Header";
-import CustomCursor from "./components/cursor/CustomCursor";
-import { Hero } from "./components/Hero";
-import { About } from "./components/About";
-import { Schedule } from "./components/Schedule";
-import { FAQ } from "./components/FAQ";
-import { Sponsors } from "./components/Sponsors";
-import { Footer } from "./components/Footer";
-import { NotFound } from "./components/NotFound";
-import { Auth } from "./components/Auth";
-import { HeatWaveDefs } from "./components/art/HeatWave";
-import { useMotionPreference } from "./hooks/useMotionPreference";
-import { useEffect, useState } from "react";
-import { scrollToSection } from "./utils/scrollToSection";
+import { useEffect } from "react";
+import { Header } from "../components/Header";
+import CustomCursor from "../components/cursor/CustomCursor";
+import { Hero } from "../components/Hero";
+import { About } from "../components/About";
+import { Schedule } from "../components/Schedule";
+import { FAQ } from "../components/FAQ";
+import { Sponsors } from "../components/Sponsors";
+import { Footer } from "../components/Footer";
+import { HeatWaveDefs } from "../components/art/HeatWave";
+import { useMotionPreference } from "../hooks/useMotionPreference";
+import { scrollToSection } from "../utils/scrollToSection";
 
-function currentRoute(pathname: string) {
-  const path = pathname.replace(/\/+$/, "") || "/";
-  if (path === "/" || path === "/index.html") return "home";
-  if (path === "/login" || path === "/signup") return "auth";
-  return "lost";
-}
-
-export default function App() {
+export default function HomePage() {
   const { motionEnabled } = useMotionPreference();
-  const [route, setRoute] = useState(() => currentRoute(window.location.pathname));
 
   useEffect(() => {
-    const sync = () => setRoute(currentRoute(window.location.pathname));
-    window.addEventListener("popstate", sync);
-    return () => window.removeEventListener("popstate", sync);
-  }, []);
-
-  useEffect(() => {
-    if (route !== "home") return;
-
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
     }
@@ -48,11 +30,9 @@ export default function App() {
     scrollFromHash();
     window.addEventListener("hashchange", scrollFromHash);
     return () => window.removeEventListener("hashchange", scrollFromHash);
-  }, [route]);
+  }, []);
 
   useEffect(() => {
-    if (route !== "home") return;
-
     document.documentElement.dataset.revealReady = "true";
     const items = Array.from(
       document.querySelectorAll<HTMLElement>(
@@ -83,25 +63,7 @@ export default function App() {
       observer.disconnect();
       delete document.documentElement.dataset.revealReady;
     };
-  }, [route]);
-
-  if (route === "auth") {
-    return (
-      <>
-        <CustomCursor />
-        <Auth />
-      </>
-    );
-  }
-
-  if (route === "lost") {
-    return (
-      <>
-        <CustomCursor />
-        <NotFound />
-      </>
-    );
-  }
+  }, []);
 
   return (
     <>

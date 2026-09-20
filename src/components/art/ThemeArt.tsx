@@ -5,9 +5,9 @@ const ART = {
     height: 1113,
   },
   horse: {
-    src: "/images/trojan-horse.png",
-    width: 1085,
-    height: 1800,
+    src: "/images/trojan-horse.webp",
+    width: 2792,
+    height: 5249,
   },
   feast: {
     src: "/images/feast.webp",

@@ -1,45 +1,46 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './playwright-coverage'
 
 test('event content and navigation are honest and complete', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
   await expect(page).toHaveTitle(/HackUTA 2026/)
   await expect(page.getByRole('heading', { level: 1 })).toContainText('HackUTA')
   await expect(page.locator('#top').getByText('November 14–15, 2026')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Schedule', exact: true })).toBeVisible()
   await expect(page.getByRole('tab', { name: 'Day I Saturday, November 14' })).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('tabpanel')).toContainText('Opening ceremony')
+  await expect(page.getByRole('tabpanel')).toContainText('Schedule coming soon!')
   await expect(page.locator('.odyssey-call-perks > li')).toHaveCount(3)
   await expect(page.getByRole('link', { name: 'Join Discord', exact: true })).toHaveAttribute('href', /discord\.gg/)
-  await expect(page.getByRole('button', { name: 'Devpost', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Devpost (Coming Soon)', exact: true })).toBeDisabled()
   await expect(page.locator('#footer').getByRole('link', { name: 'Instagram' })).toHaveAttribute('href', /instagram\.com\/hackuta/)
   await expect(page.locator('#footer').getByRole('link', { name: 'Code of Conduct' })).toHaveAttribute('href', /mlh\.io\/code-of-conduct/)
   await expect(page.getByText('Your odyssey begins here', { exact: false })).toHaveCount(0)
-  await expect(page.locator('.oracle-item')).toHaveCount(6)
+  await expect(page.locator('.oracle-item')).toHaveCount(9)
   const sponsors = page.locator('#sponsors')
   await expect(sponsors).toHaveAttribute('data-roster', 'empty')
   await expect(sponsors.getByRole('heading', { name: 'Sponsors of HackUTA 26' })).toBeAttached()
-  await expect(sponsors.getByText('Seeking Sponsors', { exact: true })).toBeAttached()
+  await expect(sponsors.getByText('Our honorable sponsors', { exact: true })).toBeAttached()
   await expect(sponsors.getByText('Sponsors announced soon', { exact: true })).toBeAttached()
   await expect(sponsors.getByRole('link', { name: 'Become a Sponsor' })).toHaveAttribute('href', /^mailto:sponsor@hackuta\.org/)
   await expect(sponsors.locator('.sponsor-tier')).toHaveCount(0)
   await expect(sponsors.locator('.sponsor-badge')).toHaveCount(0)
-  const beginnerQuestion = page.getByText('Is HackUTA beginner-friendly?', { exact: true })
+  const beginnerQuestion = page.getByText("What if I've never been to a hackathon?", { exact: true })
   await beginnerQuestion.click()
-  await expect(page.getByText('You do not need hackathon experience or a polished idea.')).toBeVisible()
+  await expect(page.getByText(/No experience required\. We run onboarding sessions/)).toBeVisible()
   expect(await page.locator('a[href="#"]').count()).toBe(0)
   const mainNav = page.getByRole('navigation', { name: 'Main navigation' })
   await mainNav.getByRole('link', { name: 'About', exact: true }).click()
   await expect(page).toHaveURL(/#about$/)
-  await expect.poll(async () => page.locator('#about').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBe(0)
+  await expect.poll(async () => page.locator('#about').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBeCloseTo(0)
   await mainNav.getByRole('link', { name: 'Schedule', exact: true }).click()
   await expect(page).toHaveURL(/#schedule$/)
-  await expect.poll(async () => page.locator('#schedule').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBe(0)
+  await expect.poll(async () => page.locator('#schedule').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBeCloseTo(0)
   await mainNav.getByRole('link', { name: 'FAQ', exact: true }).click()
   await expect(page).toHaveURL(/#faq$/)
-  await expect.poll(async () => page.locator('#faq').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBe(0)
+  await expect.poll(async () => page.locator('#faq').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBeCloseTo(0)
   await mainNav.getByRole('link', { name: 'Sponsors', exact: true }).click()
   await expect(page).toHaveURL(/#sponsors$/)
-  await expect.poll(async () => page.locator('#sponsors').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBe(0)
+  await expect.poll(async () => page.locator('#sponsors').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBeCloseTo(0)
 })
 
 test('schedule tabs default to the nearer day and switch on demand', async ({ page }) => {
@@ -48,11 +49,11 @@ test('schedule tabs default to the nearer day and switch on demand', async ({ pa
   const dayOne = page.getByRole('tab', { name: 'Day I Saturday, November 14' })
   const dayTwo = page.getByRole('tab', { name: 'Day II Sunday, November 15' })
   await expect(dayTwo).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('tabpanel')).toContainText('Closing ceremony & awards')
+  await expect(page.getByRole('tabpanel')).toContainText('Schedule coming soon!')
   await dayOne.click()
   await expect(dayOne).toHaveAttribute('aria-selected', 'true')
   await expect(dayTwo).toHaveAttribute('aria-selected', 'false')
-  await expect(page.getByRole('tabpanel')).toContainText('Check-in & breakfast')
+  await expect(page.getByRole('tabpanel')).toContainText('Schedule coming soon!')
   await dayOne.press('ArrowRight')
   await expect(dayTwo).toHaveAttribute('aria-selected', 'true')
   await expect(dayTwo).toBeFocused()
@@ -82,10 +83,21 @@ test('the opening ship drifts across the center of the viewport', async ({ page 
   await expect(hero).toHaveAttribute('data-water-renderer', 'webgl2')
   await expect(hero.locator('.od-weather-shader canvas')).toHaveCount(1)
   await expect(hero.locator('.od-webgl-water canvas')).toHaveCount(1)
-  await expect(hero.locator('.od-rain i')).toHaveCount(52)
+  await expect(hero.locator('.od-rain i')).toHaveCount(34)
   await expect(hero.locator('.od-lightning')).toHaveCount(2)
   await expect(hero.locator('.od-wave-surface')).toHaveCount(1)
 
+  const setDriftTime = async (time: number) => {
+    await ship.evaluate((element, currentTime) => {
+      const [animation] = element.getAnimations()
+      if (!animation) throw new Error('Ship drift animation is missing')
+      animation.pause()
+      animation.currentTime = currentTime
+    }, time)
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+  }
+
+  await setDriftTime(0)
   const centerAtStart = await ship.evaluate(element => {
     const box = element.getBoundingClientRect()
     return box.left + box.width / 2
@@ -93,8 +105,7 @@ test('the opening ship drifts across the center of the viewport', async ({ page 
   expect(centerAtStart).toBeGreaterThan(1440 * 0.36)
   expect(centerAtStart).toBeLessThan(1440 * 0.44)
 
-  await page.waitForTimeout(14500)
-
+  await setDriftTime(14000)
   const centerAfterDrift = await ship.evaluate(element => {
     const box = element.getBoundingClientRect()
     return box.left + box.width / 2
@@ -103,11 +114,21 @@ test('the opening ship drifts across the center of the viewport', async ({ page 
   expect(centerAfterDrift).toBeLessThan(1440 * 0.64)
 })
 
-test('mobile menu remains in the viewport and navigates', async ({ page }) => {
+test('mobile menu stays below the logo and navigates', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 })
   await page.goto('/')
+  const brand = page.getByRole('banner').getByRole('link', { name: 'HackUTA home' })
   const menu = page.getByRole('button', { name: 'Open navigation', exact: true })
+  await expect(brand).toBeInViewport()
   await expect(menu).toBeInViewport()
+  const brandBox = await brand.boundingBox()
+  const menuBox = await menu.boundingBox()
+  expect(brandBox).not.toBeNull()
+  expect(menuBox).not.toBeNull()
+  if (brandBox && menuBox) {
+    expect(menuBox.y).toBeGreaterThanOrEqual(brandBox.y + brandBox.height - 2)
+    expect(menuBox.x).toBeLessThanOrEqual(brandBox.x + 4)
+  }
   await menu.click()
   await expect(page.locator('#mobile-navigation')).toBeVisible()
   await page.keyboard.press('Escape')

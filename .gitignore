@@ -4,6 +4,8 @@ artifacts/
 audit-out/
 test-results/
 playwright-report/
+coverage/
+.nyc_output/
 *.tsbuildinfo
 .env
 .env.*
@@ -12,3 +14,5 @@ playwright-report/
 .playwright-mcp/
 design/
 .next/
+convex/_generated/*
+!convex/_generated/server.ts
