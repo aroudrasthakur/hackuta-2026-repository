@@ -97,6 +97,7 @@ describe("contentSecurityPolicy", () => {
   it("includes the core directives", () => {
     expect(contentSecurityPolicy).toContain("default-src 'self'");
     expect(contentSecurityPolicy).toContain("script-src 'self'");
+    expect(contentSecurityPolicy).toContain("wss://*.convex.cloud");
     expect(contentSecurityPolicy).toContain("upgrade-insecure-requests");
   });
 });

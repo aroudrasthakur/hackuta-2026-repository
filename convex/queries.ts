@@ -1,19 +1,11 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { resolveAuthenticatedUser } from "./authenticatedUser";
+import { isRegistrationAdmin } from "./registrationSecurity";
 
-/**
- * Get user by email (for login/auth flow).
- */
-export const getUserByEmail = query({
-  args: { email: v.string() },
-  handler: async (ctx, { email }) => {
-    const normalized = email.toLowerCase().trim();
-    
-    return await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", normalized))
-      .first() || null;
-  },
+export const getCurrentUser = query({
+  args: {},
+  handler: async (ctx) => resolveAuthenticatedUser(ctx),
 });
 
 /**
@@ -22,9 +14,13 @@ export const getUserByEmail = query({
 export const getRegistrationsByUser = query({
   args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
+    const user = await resolveAuthenticatedUser(ctx);
+    if (user._id !== userId) {
+      throw new Error("Not authorized to access this user's registrations.");
+    }
     return await ctx.db
       .query("registrations")
-      .withIndex("by_user_hackathon", (q) => q.eq("userId", userId))
+      .withIndex("by_user_hackathon", (q) => q.eq("userId", user._id))
       .collect();
   },
 });
@@ -35,7 +31,12 @@ export const getRegistrationsByUser = query({
 export const getRegistration = query({
   args: { registrationId: v.id("registrations") },
   handler: async (ctx, { registrationId }) => {
-    return await ctx.db.get(registrationId);
+    const user = await resolveAuthenticatedUser(ctx);
+    const registration = await ctx.db.get(registrationId);
+    if (!registration || registration.userId !== user._id) {
+      throw new Error("Not authorized to access this registration.");
+    }
+    return registration;
   },
 });
 
@@ -45,6 +46,13 @@ export const getRegistration = query({
 export const getRegistrationsByHackathon = query({
   args: { hackathonId: v.string() },
   handler: async (ctx, { hackathonId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Authentication required.");
+    }
+    if (!isRegistrationAdmin(identity.tokenIdentifier)) {
+      throw new Error("Not authorized to access hackathon registrations.");
+    }
     return await ctx.db
       .query("registrations")
       .withIndex("by_hackathon_status", (q) => q.eq("hackathonId", hackathonId))

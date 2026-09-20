@@ -6,6 +6,8 @@ import type schema from "./schema";
 import { validateRegistrationPayload } from "../shared/registration/validation";
 import type { RegistrationPayload } from "../shared/registration/types";
 import { MAX_RESUME_BYTES } from "../shared/registration/resume";
+import { resolveAuthenticatedUserId } from "./authenticatedUser";
+import { ensureHackathon } from "./hackathons";
 
 type MutationCtx = GenericMutationCtx<DataModelFromSchemaDefinition<typeof schema>>;
 
@@ -18,10 +20,6 @@ const CLEANUP_PAGE_SIZE = 100;
 const cleanupExpiredResumeUploadsRef = makeFunctionReference<"mutation">(
   "registrations:cleanupExpiredResumeUploads",
 );
-
-function normalizeRegistrantKey(firstName: string, lastName: string, phone: string) {
-  return `${firstName.toLowerCase().trim()}-${lastName.toLowerCase().trim()}-${phone.replace(/\D/g, "")}`;
-}
 
 export const reserveResumeUpload = internalMutation({
   args: {
@@ -90,8 +88,12 @@ async function upsertRegistration(
   status: "draft" | "submitted",
   resumeUploadToken?: string,
 ) {
-  const userId = `mock-user:${normalizeRegistrantKey(data.firstName, data.lastName, data.phone)}`;
+  const userId = await resolveAuthenticatedUserId(ctx, {
+    displayName: `${data.firstName} ${data.lastName}`,
+  });
   const { hackathonId, resumeStorageId: rawStorageId, ...fields } = data;
+  await ensureHackathon(ctx, hackathonId);
+
   const existing = await ctx.db
     .query("registrations")
     .withIndex("by_user_hackathon", (q) => q.eq("userId", userId).eq("hackathonId", hackathonId))
@@ -258,5 +260,16 @@ export const cleanupExpiredResumeUploads = internalMutation({
     ) {
       await ctx.scheduler.runAfter(0, cleanupExpiredResumeUploadsRef, {});
     }
+  },
+});
+
+export const syncUser = mutation({
+  args: {
+    email: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+  },
+  handler: async (ctx, { email, displayName }) => {
+    const userId = await resolveAuthenticatedUserId(ctx, { email, displayName });
+    return { userId, ok: true as const };
   },
 });

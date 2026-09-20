@@ -1,10 +1,13 @@
 import { httpRouter, makeFunctionReference } from "convex/server";
 import { httpAction } from "./_generated/server";
+import { auth } from "./auth";
 import { MAX_RESUME_BYTES } from "../shared/registration/resume";
 import { validateResumePdfBytes } from "./pdfValidation";
 import { getRegistrationAllowedOrigins, isOriginAllowed } from "./registrationSecurity";
 
 const http = httpRouter();
+auth.addHttpRoutes(http);
+
 const reserveResumeUploadRef = makeFunctionReference<"mutation">(
   "registrations:reserveResumeUpload",
 );
@@ -24,8 +27,6 @@ function allowedOrigin(request: Request): string | undefined {
   if (allowed.length > 0) {
     return isOriginAllowed(origin, allowed) ? origin : undefined;
   }
-  // convex-test HTTP handlers do not inherit Vitest/CI process.env; allow the
-  // dedicated unit-test origin only when production origins are not configured.
   return origin === CONVEX_TEST_ORIGIN ? origin : undefined;
 }
 
@@ -69,12 +70,6 @@ async function clientAddress(
   return forwarded?.[forwarded.length - 1]?.trim() ?? null;
 }
 
-// Public registration upload endpoint. Defense in depth:
-// - origin allowlist (REGISTRATION_ALLOWED_ORIGINS)
-// - per-IP and global rate limits (reserveResumeUpload)
-// - pdf-lib byte validation before storage (validateResumePdfBytes)
-// - capability tokens required to attach storage to a registration
-// - client discard + scheduled cleanup of unassociated blobs
 const uploadResume = httpAction(async (ctx, request) => {
   const origin = allowedOrigin(request);
   if (!origin) {

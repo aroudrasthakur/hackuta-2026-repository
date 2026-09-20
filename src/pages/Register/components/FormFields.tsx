@@ -1,14 +1,5 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
-
-const inputClass =
-  "rounded-xl border border-(--color-ocean)/50 bg-(--color-night) px-4 py-3 text-(--color-light) outline-none focus:border-(--color-sand)";
-const inputErrorClass = "border-red-400 focus:border-red-400";
-const labelClass = "flex flex-col gap-1.5 text-sm";
-const legendClass = "text-(--color-sand)";
-
-function fieldClass(error?: string) {
-  return error ? `${inputClass} ${inputErrorClass}` : inputClass;
-}
+import { fieldClass, labelClass, legendClass } from "./formFieldStyles";
 
 export function RequiredMark() {
   return (
@@ -33,10 +24,6 @@ export function FieldError({
       {message}
     </p>
   );
-}
-
-export function fieldsetErrorClass(hasError: boolean) {
-  return hasError ? "rounded-lg border border-red-400 p-3" : "";
 }
 
 type TextFieldProps = {
@@ -119,5 +106,3 @@ export function SelectField({
     </label>
   );
 }
-
-export { inputClass, labelClass, legendClass, fieldClass };

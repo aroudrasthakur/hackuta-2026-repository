@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useAuthToken } from "@convex-dev/auth/react";
 import { OdysseyButton } from "../../components/OdysseyButton";
 import {
   DIETARY_OPTIONS,
@@ -17,12 +18,14 @@ import {
   FieldError,
   SelectField,
   TextField,
+} from "./components/FormFields";
+import {
   fieldClass,
   fieldsetErrorClass,
   inputClass,
   labelClass,
   legendClass,
-} from "./components/FormFields";
+} from "./components/formFieldStyles";
 import {
   discardResumeUpload,
   submitRegistration,
@@ -51,6 +54,10 @@ export function ApplicationForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const convexAuthToken = useAuthToken();
+  const authToken = import.meta.env.VITE_USE_MOCK_API === "true"
+    ? "test-token"
+    : convexAuthToken;
   const [resumeUpload, setResumeUpload] = useState<{
     fileKey: string;
     session: ResumeUploadSession;
@@ -127,7 +134,7 @@ export function ApplicationForm({
         await discardPendingResume();
       }
 
-      await submitRegistration(validation.payload, session);
+      await submitRegistration(validation.payload, authToken, session);
       setResumeUpload(null);
       onSubmitted();
     } catch (err) {

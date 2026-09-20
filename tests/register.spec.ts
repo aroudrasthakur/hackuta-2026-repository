@@ -11,25 +11,62 @@ test.describe("registration", () => {
 
     const resume = Buffer.from("%PDF-1.7\nTest resume\n%%EOF");
     const uploadUrl = "https://registration-test.convex.site/resume-upload";
+    const uploadMethods: string[] = [];
+    const failedRequests: string[] = [];
     let uploaded = false;
+    let authorization: string | undefined;
     let submitted: Record<string, unknown> | undefined;
+    page.on("requestfailed", (request) => {
+      failedRequests.push(`${request.method()} ${request.url()}: ${request.failure()?.errorText}`);
+    });
     await page.route("**/api/mutation", async (route) => {
-      const { path, args } = route.request().postDataJSON();
+      const request = route.request();
+      if (request.method() === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          },
+        });
+        return;
+      }
+      const { path, args } = request.postDataJSON();
       if (path === "registrations:register") {
         expect(uploaded).toBe(true);
+        authorization = request.headers().authorization;
         expect(args.resumeUploadToken).toBe("test-upload-token");
         submitted = args.data;
-        await route.fulfill({ json: { status: "success", value: { ok: true } } });
+        await route.fulfill({
+          headers: { "Access-Control-Allow-Origin": "*" },
+          json: { status: "success", value: { ok: true } },
+        });
       } else {
         await route.abort();
       }
     });
     await page.route(uploadUrl, async (route) => {
-      expect(route.request().headers()["content-type"]).toBe("application/pdf");
-      expect(route.request().postDataBuffer()).toEqual(resume);
+      const request = route.request();
+      uploadMethods.push(request.method());
+      if (request.method() === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+          },
+        });
+        return;
+      }
+      expect(request.method()).toBe("POST");
+      expect(request.headers()["content-type"]).toBe("application/pdf");
+      expect(request.postDataBuffer()).toEqual(resume);
       uploaded = true;
       await route.fulfill({
         status: 201,
+        headers: { "Access-Control-Allow-Origin": "*" },
         json: { storageId: "test-resume-id", uploadToken: "test-upload-token" },
       });
     });
@@ -54,7 +91,11 @@ test.describe("registration", () => {
       name: "resume.pdf", mimeType: "application/pdf", buffer: resume,
     });
     await page.getByRole("button", { name: "Submit application" }).click();
+    await expect.poll(() => submitted, {
+      message: `upload methods: ${uploadMethods.join(", ")}; failed requests: ${failedRequests.join(" | ")}`,
+    }).toBeDefined();
     await expect(page.getByRole("heading", { name: "You're on the list!" })).toBeVisible();
+    expect(authorization).toBe("Bearer test-token");
     expect(submitted).toMatchObject({ firstName: "Sam", resumeStorageId: "test-resume-id" });
   });
 

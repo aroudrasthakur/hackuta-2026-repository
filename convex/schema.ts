@@ -1,15 +1,28 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
+import { authTables } from '@convex-dev/auth/server';
 import { registrationAnswers } from './registrationAnswers';
 
-// Temporarily simplified schema to support the application-data pipeline without the
-// auth/provider layer that is blocked by the email integration.
 export default defineSchema({
+  ...authTables,
   users: defineTable({
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
     email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    identityKey: v.optional(v.string()),
+    authSubject: v.optional(v.string()),
     displayName: v.optional(v.string()),
     createdAt: v.optional(v.number()),
-  }).index('email', ['email']),
+    updatedAt: v.optional(v.number()),
+  })
+    .index('email', ['email'])
+    .index('phone', ['phone'])
+    .index('by_identity_key', ['identityKey'])
+    .index('by_auth_subject', ['authSubject']),
 
   hackathons: defineTable({
     slug: v.string(),
@@ -21,7 +34,7 @@ export default defineSchema({
   }).index('by_slug', ['slug']),
 
   registrations: defineTable({
-    userId: v.string(),
+    userId: v.id('users'),
     hackathonId: v.string(),
     status: v.union(
       v.literal('draft'),

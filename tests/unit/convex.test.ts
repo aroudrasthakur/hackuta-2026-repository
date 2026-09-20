@@ -6,15 +6,21 @@ import schema from "../../convex/schema";
 import { MIN_GRADUATION_YEAR } from "../../shared/registration/constants";
 
 const modules = import.meta.glob("../../convex/**/*.ts", { eager: false });
-const register = makeFunctionReference<"mutation">("registrations:register");
-const submitRegistrationMutation = makeFunctionReference<"mutation">("registrations:submitRegistration");
 const remove = makeFunctionReference<"mutation">("registrations:deleteResumeUpload");
 const reserve = makeFunctionReference<"mutation">("registrations:reserveResumeUpload");
 const cleanup = makeFunctionReference<"mutation">("registrations:cleanupExpiredResumeUploads");
 
 type ConvexTestClient = {
-  mutation: (name: string, args: unknown) => Promise<{ ok: boolean; isNew?: boolean }>;
+  mutation: (name: string, args: unknown) => Promise<{
+    ok: boolean;
+    isNew?: boolean;
+    userId?: string;
+    registrationId?: string;
+  }>;
   query: (name: string, args: unknown) => Promise<unknown>;
+  withIdentity: (identity: { tokenIdentifier: string; subject?: string; email?: string; name?: string }) => ConvexTestClient;
+  run: ReturnType<typeof convexTest>["run"];
+  fetch: ReturnType<typeof convexTest>["fetch"];
 };
 
 const validRegistrationData = {
@@ -56,6 +62,22 @@ const uploadHeaders = {
 
 const createTest = () => convexTest(schema, modules);
 
+async function seedHackathon(t: ConvexTestClient) {
+  await t.mutation("seed:seedHackathon", {});
+}
+
+async function authTest(identity: {
+  tokenIdentifier: string;
+  subject?: string;
+  email?: string;
+  name?: string;
+} = { tokenIdentifier: "browser-one" }) {
+  const t = createTest().withIdentity(identity) as unknown as ConvexTestClient;
+  await seedHackathon(t);
+  return t;
+}
+
+type RunnableTest = Pick<ReturnType<typeof createTest>, "run">;
 
 async function pdfBytes() {
   const pdf = await PDFDocument.create();
@@ -64,12 +86,11 @@ async function pdfBytes() {
 }
 
 async function storeFile(
-  t: ReturnType<typeof createTest>,
+  t: RunnableTest,
   contents: BlobPart,
   type = "application/pdf",
 ) {
   const storageId = await t.run((ctx) => ctx.storage.store(new Blob([contents], { type })));
-  // convex-test omits Blob contentType from its synthetic _storage document.
   await t.run((ctx) => (ctx.db.patch as unknown as (
     id: string,
     value: { contentType: string },
@@ -77,7 +98,7 @@ async function storeFile(
   return storageId;
 }
 
-async function verifiedUpload(t: ReturnType<typeof createTest>, token: string = crypto.randomUUID()) {
+async function verifiedUpload(t: RunnableTest, token: string = crypto.randomUUID()) {
   const storageId = await storeFile(t, await pdfBytes());
   await t.run((ctx) => ctx.db.insert("resumeUploadSessions", {
     token,
@@ -89,10 +110,30 @@ async function verifiedUpload(t: ReturnType<typeof createTest>, token: string = 
 }
 
 describe("convex registrations", () => {
+  it("creates and updates registrations", async () => {
+    const t = await authTest();
+
+    const first = await t.mutation("registrations:register", {
+      data: validRegistrationData,
+    });
+    expect(first.ok).toBe(true);
+    expect(first.isNew).toBe(true);
+
+    const second = await t.mutation("registrations:register", {
+      data: validRegistrationData,
+    });
+    expect(second.isNew).toBe(false);
+
+    const draft = await t.mutation("registrations:saveDraft", {
+      data: { ...validRegistrationData, major: "Engineering" },
+    });
+    expect(draft.ok).toBe(true);
+  });
+
   it("stores a parser-verified PDF only when the matching capability is supplied", async () => {
-    const t = createTest();
+    const t = await authTest();
     const upload = await verifiedUpload(t);
-    await t.mutation(register, {
+    await t.mutation("registrations:register", {
       data: { ...validRegistrationData, resumeStorageId: upload.storageId },
       resumeUploadToken: upload.token,
     });
@@ -103,9 +144,9 @@ describe("convex registrations", () => {
   }, 10_000);
 
   it("rejects a storage ID without its matching upload capability", async () => {
-    const t = createTest();
+    const t = await authTest();
     const upload = await verifiedUpload(t);
-    await expect(t.mutation(register, {
+    await expect(t.mutation("registrations:register", {
       data: { ...validRegistrationData, resumeStorageId: upload.storageId },
       resumeUploadToken: "wrong-token",
     })).rejects.toThrow("valid PDF resume");
@@ -116,9 +157,9 @@ describe("convex registrations", () => {
     ["text/plain", "not a pdf"],
     ["application/pdf", "x".repeat(5 * 1024 * 1024 + 1)],
   ])("rejects invalid stored file metadata (%s)", async (type, contents) => {
-    const t = createTest();
+    const t = await authTest();
     const storageId = await storeFile(t, contents, type);
-    await expect(t.mutation(register, {
+    await expect(t.mutation("registrations:register", {
       data: { ...validRegistrationData, resumeStorageId: storageId },
     })).rejects.toThrow("valid PDF resume");
   });
@@ -144,27 +185,116 @@ describe("convex registrations", () => {
   });
 
   it("accepts the submitRegistration alias", async () => {
-    const t = createTest();
-    await expect(t.mutation(submitRegistrationMutation, { data: validRegistrationData }))
+    const t = await authTest();
+    await expect(t.mutation("registrations:submitRegistration", { data: validRegistrationData }))
       .resolves.toMatchObject({ ok: true, isNew: true });
   });
 
-  it("creates and updates registrations without a resume", async () => {
-    const t = createTest() as unknown as ConvexTestClient;
-    expect(await t.mutation("registrations:register", { data: validRegistrationData }))
-      .toMatchObject({ ok: true, isNew: true });
-    expect(await t.mutation("registrations:register", { data: validRegistrationData }))
-      .toMatchObject({ ok: true, isNew: false });
-    expect(await t.mutation("registrations:saveDraft", {
-      data: { ...validRegistrationData, major: "Engineering" },
-    })).toMatchObject({ ok: true });
-  });
-
   it("rejects invalid registration payloads", async () => {
-    const t = createTest() as unknown as ConvexTestClient;
+    const t = await authTest();
     await expect(t.mutation("registrations:register", {
       data: { ...validRegistrationData, age: -1 },
     })).rejects.toThrow("Invalid registration data.");
+  });
+
+  it("auto-seeds hackuta-2026 on first registration", async () => {
+    const t = createTest().withIdentity({
+      tokenIdentifier: "browser-one",
+    }) as unknown as ConvexTestClient;
+
+    await expect(
+      t.query("queries:getHackathonBySlug", { slug: "hackuta-2026" }),
+    ).resolves.toBeNull();
+    await t.mutation("registrations:register", { data: validRegistrationData });
+    await expect(
+      t.query("queries:getHackathonBySlug", { slug: "hackuta-2026" }),
+    ).resolves.toMatchObject({ slug: "hackuta-2026", name: "HackUTA 2026" });
+  });
+
+  it("rejects unauthenticated registration", async () => {
+    const t = createTest() as unknown as ConvexTestClient;
+
+    await expect(
+      t.mutation("registrations:register", { data: validRegistrationData }),
+    ).rejects.toThrow("Authentication required.");
+  });
+
+  it("reuses one user for repeated synchronization", async () => {
+    const t = createTest().withIdentity({
+      tokenIdentifier: "browser-one",
+    }) as unknown as ConvexTestClient;
+
+    const first = await t.mutation("registrations:syncUser", {
+      email: " Sam@Example.com ",
+      displayName: "Sam Test",
+    });
+    const second = await t.mutation("registrations:syncUser", {
+      email: "sam@example.com",
+      displayName: "Sam Updated",
+    });
+
+    expect(first.userId).toBe(second.userId);
+    await expect(t.query("queries:getCurrentUser", {})).resolves.toMatchObject({
+      identityKey: "browser-one",
+      email: "sam@example.com",
+      displayName: "Sam Updated",
+    });
+  });
+
+  it("reuses one user when the identity key changes but the auth subject stays the same", async () => {
+    const base = createTest();
+    const subject = "stable-auth-subject";
+    const first = base.withIdentity({
+      tokenIdentifier: "browser-one",
+      subject,
+    }) as unknown as ConvexTestClient;
+    const firstSync = await first.mutation("registrations:syncUser", {
+      email: "sam@example.com",
+    });
+
+    const second = base.withIdentity({
+      tokenIdentifier: "browser-two",
+      subject,
+    }) as unknown as ConvexTestClient;
+    const secondSync = await second.mutation("registrations:syncUser", {
+      email: "sam@example.com",
+    });
+
+    expect(firstSync.userId).toBe(secondSync.userId);
+    await expect(second.query("queries:getCurrentUser", {})).resolves.toMatchObject({
+      identityKey: "browser-two",
+      authSubject: subject,
+      email: "sam@example.com",
+    });
+    expect(await second.run((ctx) => ctx.db.query("users").collect())).toHaveLength(1);
+  });
+
+  it("rejects duplicate normalized emails", async () => {
+    const base = createTest();
+    const t = base.withIdentity({
+      tokenIdentifier: "browser-one",
+    }) as unknown as ConvexTestClient;
+
+    await t.mutation("registrations:syncUser", {
+      email: "sam@example.com",
+    });
+
+    const duplicateUser = base.withIdentity({
+      tokenIdentifier: "browser-two",
+    }) as unknown as ConvexTestClient;
+    await expect(
+      duplicateUser.mutation("registrations:syncUser", {
+        email: " SAM@EXAMPLE.COM ",
+      }),
+    ).rejects.toThrow("already associated");
+  });
+
+  it("rejects unauthenticated user synchronization", async () => {
+    const t = createTest() as unknown as ConvexTestClient;
+
+    await expect(t.mutation("registrations:syncUser", {})).rejects.toThrow(
+      "Authentication required.",
+    );
   });
 });
 
@@ -204,7 +334,7 @@ describe("resume HTTP validation and lifecycle", () => {
   });
 
   it("parses, stores, and binds a valid PDF through the HTTP upload route", async () => {
-    const t = createTest();
+    const t = await authTest();
     const result = await t.fetch("/resume-upload", {
       method: "POST",
       headers: uploadHeaders,
@@ -212,12 +342,11 @@ describe("resume HTTP validation and lifecycle", () => {
     });
     expect(result.status).toBe(201);
     const upload = await result.json() as { storageId: string; uploadToken: string };
-    // convex-test omits the Blob contentType that the real upload records.
     await t.run((ctx) => (ctx.db.patch as unknown as (
       id: string,
       value: { contentType: string },
     ) => Promise<void>)(upload.storageId, { contentType: "application/pdf" }));
-    await expect(t.mutation(register, {
+    await expect(t.mutation("registrations:register", {
       data: { ...validRegistrationData, resumeStorageId: upload.storageId },
       resumeUploadToken: upload.uploadToken,
     })).resolves.toMatchObject({ ok: true, isNew: true });
@@ -297,35 +426,39 @@ describe("resume HTTP validation and lifecycle", () => {
   });
 
   it("keeps an attached resume and permits idempotent resubmission", async () => {
-    const t = createTest();
+    const t = await authTest();
     const upload = await verifiedUpload(t);
     const data = { ...validRegistrationData, resumeStorageId: upload.storageId };
-    await t.mutation(register, { data, resumeUploadToken: upload.token });
-    await t.mutation(remove, { uploadToken: upload.token });
+    await t.mutation("registrations:register", { data, resumeUploadToken: upload.token });
+    await t.mutation("registrations:deleteResumeUpload", { uploadToken: upload.token });
     expect(await t.run((ctx) => ctx.db.system.get("_storage", upload.storageId))).not.toBeNull();
-    await expect(t.mutation(register, { data })).resolves.toMatchObject({ ok: true, isNew: false });
+    await expect(t.mutation("registrations:register", { data })).resolves.toMatchObject({ ok: true, isNew: false });
   });
 
   it("does not let another application claim a submitted resume", async () => {
-    const t = createTest();
-    const upload = await verifiedUpload(t);
-    await t.mutation(register, {
+    const base = createTest();
+    const owner = base.withIdentity({ tokenIdentifier: "resume-owner" }) as unknown as ConvexTestClient;
+    await seedHackathon(owner);
+    const upload = await verifiedUpload(owner);
+    await owner.mutation("registrations:register", {
       data: { ...validRegistrationData, resumeStorageId: upload.storageId },
       resumeUploadToken: upload.token,
     });
-    await expect(t.mutation(register, {
+
+    const otherApplicant = base.withIdentity({ tokenIdentifier: "other-applicant" }) as unknown as ConvexTestClient;
+    await expect(otherApplicant.mutation("registrations:register", {
       data: { ...validRegistrationData, firstName: "Other", resumeStorageId: upload.storageId },
     })).rejects.toThrow("already attached");
   });
 
   it("ignores delete requests for consumed upload capabilities", async () => {
-    const t = createTest();
+    const t = await authTest();
     const upload = await verifiedUpload(t);
-    await t.mutation(register, {
+    await t.mutation("registrations:register", {
       data: { ...validRegistrationData, resumeStorageId: upload.storageId },
       resumeUploadToken: upload.token,
     });
-    await expect(t.mutation(remove, { uploadToken: upload.token })).resolves.toEqual({ ok: true });
+    await expect(t.mutation("registrations:deleteResumeUpload", { uploadToken: upload.token })).resolves.toEqual({ ok: true });
     expect(await t.run((ctx) => ctx.db.system.get("_storage", upload.storageId))).not.toBeNull();
   });
 
@@ -339,11 +472,11 @@ describe("resume HTTP validation and lifecycle", () => {
   });
 
   it("deletes replaced resumes", async () => {
-    const t = createTest();
+    const t = await authTest();
     const first = await verifiedUpload(t);
     const second = await verifiedUpload(t);
     for (const upload of [first, second]) {
-      await t.mutation(register, {
+      await t.mutation("registrations:register", {
         data: { ...validRegistrationData, resumeStorageId: upload.storageId },
         resumeUploadToken: upload.token,
       });
@@ -363,16 +496,16 @@ describe("resume HTTP validation and lifecycle", () => {
   });
 
   it("scheduled cleanup removes expired unassociated files but preserves attached files", async () => {
-    const t = createTest();
+    const t = await authTest();
     const orphan = await verifiedUpload(t, "orphan-token");
     const attached = await verifiedUpload(t, "attached-token");
-    await t.mutation(register, {
+    await t.mutation("registrations:register", {
       data: { ...validRegistrationData, resumeStorageId: attached.storageId },
       resumeUploadToken: attached.token,
     });
     const now = Date.now();
     const clock = vi.spyOn(Date, "now").mockReturnValue(now + 31 * 60 * 1000);
-    await t.mutation(cleanup, {});
+    await t.mutation("registrations:cleanupExpiredResumeUploads", {});
     expect(await t.run((ctx) => ctx.db.system.get("_storage", orphan.storageId))).toBeNull();
     expect(await t.run((ctx) => ctx.db.system.get("_storage", attached.storageId))).not.toBeNull();
     clock.mockRestore();
@@ -380,56 +513,101 @@ describe("resume HTTP validation and lifecycle", () => {
 });
 
 describe("convex queries", () => {
-  it("returns empty results for missing records", async () => {
+  it("returns null for missing records", async () => {
     const t = createTest() as unknown as ConvexTestClient;
-    await expect(t.query("queries:getUserByEmail", { email: "missing@example.com" })).resolves.toBeNull();
+
     await expect(t.query("queries:getHackathonBySlug", { slug: "missing" })).resolves.toBeNull();
-    await expect(t.query("queries:getRegistrationsByUser", { userId: "missing" })).resolves.toEqual([]);
+    await expect(t.query("queries:getRegistrationsByUser", { userId: "missing" })).rejects.toThrow(
+      "Authentication required.",
+    );
   });
 
-  it("returns stored users, registrations, and hackathons", async () => {
-    const t = createTest();
-    const client = t as unknown as ConvexTestClient;
-    const userId = await t.run((ctx) => ctx.db.insert("users", {
+  it("seeds hackuta-2026 idempotently and finds it by slug", async () => {
+    const t = createTest() as unknown as ConvexTestClient;
+
+    const first = await t.mutation("seed:seedHackathon", {});
+    const second = await t.mutation("seed:seedHackathon", {});
+
+    expect(first).toBe(second);
+    await expect(
+      t.query("queries:getHackathonBySlug", { slug: "hackuta-2026" }),
+    ).resolves.toMatchObject({ slug: "hackuta-2026", name: "HackUTA 2026" });
+  });
+
+  it("only returns registrations for the authenticated user", async () => {
+    const t = createTest().withIdentity({
+      tokenIdentifier: "provider-user",
+      email: "sam@example.com",
+    }) as unknown as ConvexTestClient;
+    await seedHackathon(t);
+    const synced = await t.mutation("registrations:syncUser", {});
+
+    await expect(
+      t.query("queries:getRegistrationsByUser", { userId: synced.userId }),
+    ).resolves.toEqual([]);
+
+    await expect(
+      t.query("queries:getRegistrationsByUser", { userId: "different-user" }),
+    ).rejects.toThrow("Not authorized");
+  });
+
+  it("returns the synchronized current user", async () => {
+    const t = createTest().withIdentity({
+      tokenIdentifier: "provider-user",
+      email: "sam@example.com",
+      name: "Sam Test",
+    }) as unknown as ConvexTestClient;
+    await seedHackathon(t);
+
+    await t.mutation("registrations:syncUser", {});
+
+    await expect(t.query("queries:getCurrentUser", {})).resolves.toMatchObject({
+      identityKey: "provider-user",
       email: "sam@example.com",
       displayName: "Sam Test",
-      createdAt: Date.now(),
-    }));
-    const hackathonId = await t.run((ctx) => ctx.db.insert("hackathons", {
-      slug: "hackuta-2026",
-      name: "HackUTA 2026",
-      startsAt: Date.now(),
-      endsAt: Date.now() + 86_400_000,
-      registrationOpensAt: Date.now(),
-      registrationClosesAt: Date.now() + 86_400_000,
-    }));
-    const registrationId = await t.run((ctx) => ctx.db.insert("registrations", {
-      userId: "mock-user:sam-test-5551234567",
-      hackathonId: "hackuta-2026",
-      status: "submitted",
-      eligibilityStatus: "unreviewed",
-      answers: {
-        firstName: validRegistrationData.firstName,
-        lastName: validRegistrationData.lastName,
-        phone: validRegistrationData.phone,
-        major: validRegistrationData.major,
-      },
-      updatedAt: Date.now(),
-    }));
+    });
+  });
 
-    await expect(client.query("queries:getUserByEmail", { email: " sam@example.com " })).resolves.toMatchObject({
-      _id: userId,
-      email: "sam@example.com",
+  it("rejects a provider identity that has not been synchronized", async () => {
+    const t = createTest().withIdentity({
+      tokenIdentifier: "unsynchronized-user",
+    }) as unknown as ConvexTestClient;
+    await seedHackathon(t);
+
+    await expect(t.query("queries:getCurrentUser", {})).rejects.toThrow(
+      "has not been synchronized",
+    );
+  });
+
+  it("allows owned registration reads and rejects missing or foreign records", async () => {
+    const base = createTest();
+    const t = base.withIdentity({
+      tokenIdentifier: "provider-user",
+    }) as unknown as ConvexTestClient;
+    await seedHackathon(t);
+    const user = await t.mutation("registrations:syncUser", {});
+    const created = await t.mutation("registrations:register", {
+      data: validRegistrationData,
     });
-    await expect(client.query("queries:getHackathonBySlug", { slug: "hackuta-2026" })).resolves.toMatchObject({
-      _id: hackathonId,
-    });
-    await expect(client.query("queries:getRegistrationsByUser", { userId: "mock-user:sam-test-5551234567" }))
-      .resolves.toHaveLength(1);
-    await expect(client.query("queries:getRegistrationsByHackathon", { hackathonId: "hackuta-2026" }))
-      .resolves.toHaveLength(1);
-    await expect(client.query("queries:getRegistration", { registrationId })).resolves.toMatchObject({
-      status: "submitted",
-    });
+
+    await expect(
+      t.query("queries:getRegistration", { registrationId: created.registrationId }),
+    ).resolves.toMatchObject({ userId: user.userId });
+
+    const foreignUser = base.withIdentity({
+      tokenIdentifier: "foreign-user",
+    }) as unknown as ConvexTestClient;
+    await foreignUser.mutation("registrations:syncUser", {});
+    await expect(
+      foreignUser.query("queries:getRegistration", { registrationId: created.registrationId }),
+    ).rejects.toThrow("Not authorized");
+
+    await expect(
+      t.query("queries:getRegistrationsByHackathon", { hackathonId: "hackuta-2026" }),
+    ).resolves.toHaveLength(1);
+
+    await expect(
+      foreignUser.query("queries:getRegistrationsByHackathon", { hackathonId: "hackuta-2026" }),
+    ).rejects.toThrow("Not authorized to access hackathon registrations");
   });
 });

@@ -6,6 +6,10 @@ import { ApplicationForm } from "../../src/pages/Register/ApplicationForm";
 import { SuccessStep } from "../../src/pages/Register/SuccessStep";
 import { renderWithRouter } from "./test-utils";
 
+vi.mock("@convex-dev/auth/react", () => ({
+  useAuthToken: vi.fn(() => "test-token"),
+}));
+
 vi.mock("../../src/pages/Register/registerApi", () => ({
   submitRegistration: vi.fn(),
   uploadResume: vi.fn(),
@@ -80,7 +84,7 @@ describe("ApplicationForm", () => {
     expect(submitRegistration).toHaveBeenCalledWith(expect.objectContaining({
       otherDietary: "No peanuts", linkedin: "https://linkedin.com/in/sam", portfolio: "https://example.com/sam",
       accessibilityNeeds: "Step-free access", firstHackathon: false,
-    }), { storageId: "resume-id", uploadToken: "upload-token" });
+    }), "test-token", { storageId: "resume-id", uploadToken: "upload-token" });
     finish({ ok: true });
     await waitFor(() => expect(onSubmitted).toHaveBeenCalledOnce());
   }, 10_000);
