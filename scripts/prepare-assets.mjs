@@ -25,7 +25,6 @@ const ILLUSTRATIONS = [
   { name: "trees-left-clear", maxEdge: 1600 },
   { name: "trees-right", maxEdge: 1600 },
   { name: "trees-right-clear", maxEdge: 1600 },
-  { name: "ship-water", maxEdge: 1600 },
 ];
 
 async function fileExists(filePath) {

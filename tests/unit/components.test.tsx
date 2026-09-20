@@ -183,7 +183,7 @@ describe("Header and Footer", () => {
   it("renders primary navigation and footer links", () => {
     renderWithRouter(<Header />);
     expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/#about");
+    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "#about");
 
     render(<Footer motionEnabled={false} />);
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();

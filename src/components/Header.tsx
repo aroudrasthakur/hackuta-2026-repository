@@ -5,7 +5,6 @@ import {
   useState,
   type MouseEvent,
 } from "react";
-import { Link, useLocation } from "react-router-dom";
 
 import { Logo } from "./art/Logo";
 
@@ -22,11 +21,6 @@ const MLH_FADE_DISTANCE = 500;
 const MLH_DISABLE_THRESHOLD = 0.95;
 const DESKTOP_BREAKPOINT = 768;
 
-function isAuthPath(pathname: string) {
-  const path = pathname.replace(/\/+$/, "") || "/";
-  return path === "/login" || path === "/signup";
-}
-
 function getSectionTheme(value: string | undefined): HeaderTheme | null {
   if (value === "clay" || value === "dark") {
     return value;
@@ -36,7 +30,6 @@ function getSectionTheme(value: string | undefined): HeaderTheme | null {
 }
 
 export function Header() {
-  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<HeaderTheme>("clay");
   const [active, setActive] = useState("");
@@ -44,7 +37,6 @@ export function Header() {
 
   const headerRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const onAuthPage = isAuthPath(location.pathname);
 
   useEffect(() => {
     const header = headerRef.current;
@@ -241,7 +233,7 @@ export function Header() {
    */
   const navigate = useCallback(
     (id: string) => (event: MouseEvent<HTMLAnchorElement>) => {
-      if (document.getElementById(id) && scrollToSection(id)) {
+      if (scrollToSection(id)) {
         event.preventDefault();
       }
 
@@ -290,7 +282,7 @@ export function Header() {
         <div className="header-inner">
           <div className="header-mobile-stack">
             <a
-              href="/#top"
+              href="#top"
               className="header-brand"
               aria-label="HackUTA home"
               onClick={navigate("top")}
@@ -324,7 +316,7 @@ export function Header() {
             {PRIMARY_NAV_LINKS.map((link) => (
               <a
                 key={link.id}
-                href={`/#${link.id}`}
+                href={`#${link.id}`}
                 aria-current={active === link.id ? "location" : undefined}
                 onClick={navigate(link.id)}
               >
@@ -332,17 +324,6 @@ export function Header() {
               </a>
             ))}
           </nav>
-
-          <div className="header-actions">
-            <Link
-              to="/login"
-              className="header-login uppercase"
-              aria-current={onAuthPage ? "page" : undefined}
-              onClick={() => setOpen(false)}
-            >
-              Log in
-            </Link>
-          </div>
         </div>
 
         <nav
@@ -354,7 +335,7 @@ export function Header() {
           {PRIMARY_NAV_LINKS.map((link, index) => (
             <a
               key={link.id}
-              href={`/#${link.id}`}
+              href={`#${link.id}`}
               aria-current={active === link.id ? "location" : undefined}
               onClick={navigate(link.id)}
             >
@@ -377,31 +358,8 @@ export function Header() {
               </span>
             </a>
           ))}
-          <Link
-            to="/login"
-            aria-current={onAuthPage ? "page" : undefined}
-            onClick={() => setOpen(false)}
-          >
-            <span aria-hidden="true">
-              {String(PRIMARY_NAV_LINKS.length + 1).padStart(2, "0")}
-            </span>
-            Log in
-            <span className="mobile-nav-arrow" aria-hidden="true">
-              <svg viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M3 13L13 3M13 3H6M13 3V10"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          </Link>
           <a href="/register">
-            <span aria-hidden="true">
-              {String(PRIMARY_NAV_LINKS.length + 2).padStart(2, "0")}
-            </span>
+            <span>0{PRIMARY_NAV_LINKS.length + 1}</span>
             Apply
             <span className="mobile-nav-arrow" aria-hidden="true">
               <svg viewBox="0 0 16 16" fill="none">

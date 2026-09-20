@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import HomePage from "../../src/pages/HomePage";
 import { renderWithRouter } from "./test-utils";
@@ -22,7 +22,7 @@ describe("HomePage", () => {
     document.body.appendChild(about);
     window.location.hash = "#about";
 
-    renderWithRouter(<HomePage />);
+    render(<HomePage />);
 
     fireEvent(window, new HashChangeEvent("hashchange"));
     window.location.hash = "";

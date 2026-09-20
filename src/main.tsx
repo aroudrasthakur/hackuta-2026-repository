@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import RegisterPage from './pages/Register/RegisterPage'
-import { Auth } from './components/Auth'
 import { NotFound } from './components/NotFound'
 import './styles/index.css'
 
@@ -16,8 +15,6 @@ ReactDOM.createRoot(root).render(
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/login" element={<Auth />} />
-        <Route path="/signup" element={<Auth />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
