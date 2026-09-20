@@ -19,10 +19,6 @@ const cleanupExpiredResumeUploadsRef = makeFunctionReference<"mutation">(
   "registrations:cleanupExpiredResumeUploads",
 );
 
-function normalizeRegistrantKey(firstName: string, lastName: string, phone: string) {
-  return `${firstName.toLowerCase().trim()}-${lastName.toLowerCase().trim()}-${phone.replace(/\D/g, "")}`;
-}
-
 export const reserveResumeUpload = internalMutation({
   args: {
     requestKey: v.string(),
