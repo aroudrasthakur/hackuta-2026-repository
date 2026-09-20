@@ -40,9 +40,14 @@ jobs:
         run: npm run typecheck
 
       - name: Run unit tests with coverage
+        env:
+          REGISTRATION_ALLOWED_ORIGINS: https://hackuta.test
         run: npm run test:unit:coverage
 
       - name: Build production application
+        env:
+          # Browser tests intercept this endpoint; no real deployment is contacted.
+          VITE_CONVEX_URL: https://registration-test.convex.cloud
         run: npm run build
 
       - name: Upload production build

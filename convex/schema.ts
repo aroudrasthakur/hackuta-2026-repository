@@ -44,5 +44,24 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index('by_user_hackathon', ['userId', 'hackathonId'])
+    .index('by_resume', ['answers.resumeStorageId'])
     .index('by_hackathon_status', ['hackathonId', 'status']),
+
+  resumeUploadRequests: defineTable({
+    userKey: v.string(),
+    createdAt: v.number(),
+  })
+    .index('by_user_createdAt', ['userKey', 'createdAt'])
+    .index('by_createdAt', ['createdAt']),
+
+  resumeUploadSessions: defineTable({
+    token: v.string(),
+    createdAt: v.number(),
+    storageId: v.optional(v.id('_storage')),
+    verifiedAt: v.optional(v.number()),
+    consumedAt: v.optional(v.number()),
+  })
+    .index('by_token', ['token'])
+    .index('by_storage', ['storageId'])
+    .index('by_createdAt', ['createdAt']),
 });

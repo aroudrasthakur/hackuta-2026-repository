@@ -1,6 +1,7 @@
 import type { ZodError } from "zod";
 import { HACKATHON_ID } from "./constants";
 import { registrationPayloadSchema } from "./schema";
+import { validateResume } from "./resume";
 import type {
   ApplicationFormData,
   FieldName,
@@ -42,7 +43,6 @@ function buildRegistrationCandidate(form: ApplicationFormData) {
     tshirtSize: form.tshirtSize || undefined,
     firstHackathon: form.firstHackathon ?? undefined,
     hearAbout: form.hearAbout || undefined,
-    resumeUrl: form.resumeUrl,
     linkedin: form.linkedin,
     github: form.github,
     portfolio: form.portfolio,
@@ -60,9 +60,12 @@ export function validateApplicationForm(form: ApplicationFormData):
   | { success: true; payload: RegistrationPayload }
   | { success: false; errors: FieldErrors } {
   const result = registrationPayloadSchema.safeParse(buildRegistrationCandidate(form));
+  const errors = result.success ? {} : zodErrorToFieldErrors(result.error);
+  const resumeError = form.resume ? validateResume(form.resume) : undefined;
+  if (resumeError) errors.resume = resumeError;
 
-  if (!result.success) {
-    return { success: false, errors: zodErrorToFieldErrors(result.error) };
+  if (!result.success || resumeError) {
+    return { success: false, errors };
   }
 
   return { success: true, payload: result.data };

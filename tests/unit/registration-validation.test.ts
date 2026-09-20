@@ -45,6 +45,16 @@ function validPayloadFromForm() {
 }
 
 describe("validateApplicationForm", () => {
+  it.each([
+    new File(["text"], "resume.txt", { type: "text/plain" }),
+    new File([], "resume.pdf", { type: "application/pdf" }),
+    new File(["x".repeat(5 * 1024 * 1024 + 1)], "resume.pdf", { type: "application/pdf" }),
+  ])("blocks submission of invalid resume files", (resume) => {
+    const result = validateApplicationForm({ ...validForm(), resume });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.errors.resume).toBeTruthy();
+  });
+
   it("rejects an empty form with field errors", () => {
     const result = validateApplicationForm(INITIAL_FORM);
 
