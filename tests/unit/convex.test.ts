@@ -237,6 +237,34 @@ describe("convex registrations", () => {
     });
   });
 
+  it("reuses one user when the identity key changes but the auth subject stays the same", async () => {
+    const base = createTest();
+    const subject = "stable-auth-subject";
+    const first = base.withIdentity({
+      tokenIdentifier: "browser-one",
+      subject,
+    }) as unknown as ConvexTestClient;
+    const firstSync = await first.mutation("registrations:syncUser", {
+      email: "sam@example.com",
+    });
+
+    const second = base.withIdentity({
+      tokenIdentifier: "browser-two",
+      subject,
+    }) as unknown as ConvexTestClient;
+    const secondSync = await second.mutation("registrations:syncUser", {
+      email: "sam@example.com",
+    });
+
+    expect(firstSync.userId).toBe(secondSync.userId);
+    await expect(second.query("queries:getCurrentUser", {})).resolves.toMatchObject({
+      identityKey: "browser-two",
+      authSubject: subject,
+      email: "sam@example.com",
+    });
+    expect(await second.run((ctx) => ctx.db.query("users").collect())).toHaveLength(1);
+  });
+
   it("rejects duplicate normalized emails", async () => {
     const base = createTest();
     const t = base.withIdentity({
@@ -572,6 +600,10 @@ describe("convex queries", () => {
 
     await expect(
       t.query("queries:getRegistrationsByHackathon", { hackathonId: "hackuta-2026" }),
-    ).rejects.toThrow("Admin authorization is not configured");
+    ).resolves.toHaveLength(1);
+
+    await expect(
+      foreignUser.query("queries:getRegistrationsByHackathon", { hackathonId: "hackuta-2026" }),
+    ).rejects.toThrow("Not authorized to access hackathon registrations");
   });
 });

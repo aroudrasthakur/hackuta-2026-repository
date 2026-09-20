@@ -1,5 +1,6 @@
 import { query, type QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { isRegistrationAdmin } from "./registrationSecurity";
 
 async function requireAuthenticatedUser(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -7,10 +8,16 @@ async function requireAuthenticatedUser(ctx: QueryCtx) {
     throw new Error("Authentication required.");
   }
 
-  const user = await ctx.db
+  let user = await ctx.db
     .query("users")
     .withIndex("by_identity_key", (q) => q.eq("identityKey", identity.tokenIdentifier))
     .first();
+  if (!user && identity.subject) {
+    user = await ctx.db
+      .query("users")
+      .withIndex("by_auth_subject", (q) => q.eq("authSubject", identity.subject))
+      .first();
+  }
   if (!user) {
     throw new Error("Authenticated user has not been synchronized.");
   }
@@ -59,9 +66,18 @@ export const getRegistration = query({
  */
 export const getRegistrationsByHackathon = query({
   args: { hackathonId: v.string() },
-  handler: async (ctx) => {
-    await requireAuthenticatedUser(ctx);
-    throw new Error("Admin authorization is not configured.");
+  handler: async (ctx, { hackathonId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Authentication required.");
+    }
+    if (!isRegistrationAdmin(identity.tokenIdentifier)) {
+      throw new Error("Not authorized to access hackathon registrations.");
+    }
+    return await ctx.db
+      .query("registrations")
+      .withIndex("by_hackathon_status", (q) => q.eq("hackathonId", hackathonId))
+      .collect();
   },
 });
 

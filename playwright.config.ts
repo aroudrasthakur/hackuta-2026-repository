@@ -1,7 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const useProductionBuild = process.env.PLAYWRIGHT_USE_BUILD === 'true'
-const baseURL = useProductionBuild ? 'http://127.0.0.1:4174' : 'http://127.0.0.1:5173'
+const defaultPort = useProductionBuild ? 4174 : 5173
+const port = Number(process.env.PLAYWRIGHT_PORT ?? defaultPort)
+const baseURL = `http://127.0.0.1:${port}`
 
 export default defineConfig({
   testDir: './tests',
@@ -13,10 +15,13 @@ export default defineConfig({
     ? [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }]
     : [{ name: 'edge', use: { ...devices['Desktop Edge'], channel: 'msedge' } }],
   webServer: {
-    env: { VITE_CONVEX_URL: 'https://registration-test.convex.cloud' },
+    env: {
+      VITE_CONVEX_URL: 'https://registration-test.convex.cloud',
+      VITE_USE_MOCK_API: 'true',
+    },
     command: useProductionBuild
-      ? 'node ./node_modules/vite/bin/vite.js preview --host 127.0.0.1'
-      : 'npm run dev',
+      ? `node ./node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port ${port}`
+      : `npm run dev -- --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
   },

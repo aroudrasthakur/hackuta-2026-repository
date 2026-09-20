@@ -14,13 +14,15 @@ export default defineSchema({
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
     identityKey: v.optional(v.string()),
+    authSubject: v.optional(v.string()),
     displayName: v.optional(v.string()),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   })
     .index('email', ['email'])
     .index('phone', ['phone'])
-    .index('by_identity_key', ['identityKey']),
+    .index('by_identity_key', ['identityKey'])
+    .index('by_auth_subject', ['authSubject']),
 
   hackathons: defineTable({
     slug: v.string(),

@@ -98,22 +98,23 @@ async function upsertUser(
   identityKey: string,
   email: string | undefined,
   displayName: string | undefined,
-  authUserId: string | undefined = undefined,
+  authSubject: string | undefined = undefined,
 ) {
   const normalizedIdentityKey = identityKey.trim();
   if (!normalizedIdentityKey) {
     throw new Error("A user identity is required.");
   }
 
+  const normalizedAuthSubject = authSubject?.trim() || undefined;
   const normalizedEmail = normalizeEmail(email);
   let existing = await ctx.db
     .query("users")
     .withIndex("by_identity_key", (q) => q.eq("identityKey", normalizedIdentityKey))
     .first();
-  if (!existing && authUserId) {
+  if (!existing && normalizedAuthSubject) {
     existing = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("_id"), authUserId))
+      .withIndex("by_auth_subject", (q) => q.eq("authSubject", normalizedAuthSubject))
       .first();
   }
 
@@ -131,6 +132,8 @@ async function upsertUser(
   const now = Date.now();
   if (existing) {
     await ctx.db.patch(existing._id, {
+      identityKey: normalizedIdentityKey,
+      authSubject: normalizedAuthSubject ?? existing.authSubject,
       email: normalizedEmail,
       displayName: displayName?.trim() || undefined,
       updatedAt: now,
@@ -140,6 +143,7 @@ async function upsertUser(
 
   return ctx.db.insert("users", {
     identityKey: normalizedIdentityKey,
+    authSubject: normalizedAuthSubject,
     email: normalizedEmail,
     displayName: displayName?.trim() || undefined,
     createdAt: now,

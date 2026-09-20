@@ -23,7 +23,8 @@ const app = (
 )
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL
-const content = convexUrl ? (
+const useMockApi = import.meta.env.VITE_USE_MOCK_API === 'true'
+const content = convexUrl && !useMockApi ? (
   <ConvexAuthProvider client={new ConvexReactClient(convexUrl)}>
     <AuthBootstrap>{app}</AuthBootstrap>
   </ConvexAuthProvider>

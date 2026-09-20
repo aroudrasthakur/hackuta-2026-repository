@@ -52,7 +52,10 @@ export function ApplicationForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const authToken = useAuthToken();
+  const convexAuthToken = useAuthToken();
+  const authToken = import.meta.env.VITE_USE_MOCK_API === "true"
+    ? "test-token"
+    : convexAuthToken;
   const [resumeUpload, setResumeUpload] = useState<{
     fileKey: string;
     session: ResumeUploadSession;

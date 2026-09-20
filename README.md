@@ -37,3 +37,7 @@ Set `VITE_CONVEX_URL` and `VITE_CONVEX_SITE_URL` in the frontend deployment. Set
 exact website origins that may upload resumes. Resume objects stay in private
 Convex storage; any future reviewer download endpoint must authenticate the
 reviewer and authorize access before returning file bytes.
+
+To let organizers list registrations via `getRegistrationsByHackathon`, set
+`REGISTRATION_ADMIN_IDENTITY_KEYS` on the Convex deployment to the comma-separated
+Convex Auth `tokenIdentifier` values for those accounts.
