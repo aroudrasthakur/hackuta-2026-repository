@@ -6,6 +6,8 @@ import type schema from "./schema";
 import { validateRegistrationPayload } from "../shared/registration/validation";
 import type { RegistrationPayload } from "../shared/registration/types";
 import { MAX_RESUME_BYTES } from "../shared/registration/resume";
+import { resolveAuthenticatedUserId } from "./authenticatedUser";
+import { ensureHackathon } from "./hackathons";
 
 type MutationCtx = GenericMutationCtx<DataModelFromSchemaDefinition<typeof schema>>;
 
@@ -80,99 +82,17 @@ export const recordVerifiedResumeUpload = internalMutation({
   },
 });
 
-function normalizeEmail(email: string | undefined) {
-  const normalized = email?.trim().toLowerCase();
-  return normalized || undefined;
-}
-
-async function requireIdentity(ctx: MutationCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new Error("Authentication required.");
-  }
-  return identity;
-}
-
-async function upsertUser(
-  ctx: MutationCtx,
-  identityKey: string,
-  email: string | undefined,
-  displayName: string | undefined,
-  authSubject: string | undefined = undefined,
-) {
-  const normalizedIdentityKey = identityKey.trim();
-  if (!normalizedIdentityKey) {
-    throw new Error("A user identity is required.");
-  }
-
-  const normalizedAuthSubject = authSubject?.trim() || undefined;
-  const normalizedEmail = normalizeEmail(email);
-  let existing = await ctx.db
-    .query("users")
-    .withIndex("by_identity_key", (q) => q.eq("identityKey", normalizedIdentityKey))
-    .first();
-  if (!existing && normalizedAuthSubject) {
-    existing = await ctx.db
-      .query("users")
-      .withIndex("by_auth_subject", (q) => q.eq("authSubject", normalizedAuthSubject))
-      .first();
-  }
-
-  if (normalizedEmail) {
-    const emailOwner = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", normalizedEmail))
-      .first();
-
-    if (emailOwner && (!existing || emailOwner._id !== existing._id)) {
-      throw new Error("That email address is already associated with another user.");
-    }
-  }
-
-  const now = Date.now();
-  if (existing) {
-    await ctx.db.patch(existing._id, {
-      identityKey: normalizedIdentityKey,
-      authSubject: normalizedAuthSubject ?? existing.authSubject,
-      email: normalizedEmail,
-      displayName: displayName?.trim() || undefined,
-      updatedAt: now,
-    });
-    return existing._id;
-  }
-
-  return ctx.db.insert("users", {
-    identityKey: normalizedIdentityKey,
-    authSubject: normalizedAuthSubject,
-    email: normalizedEmail,
-    displayName: displayName?.trim() || undefined,
-    createdAt: now,
-    updatedAt: now,
-  });
-}
-
 async function upsertRegistration(
   ctx: MutationCtx,
   data: RegistrationPayload,
   status: "draft" | "submitted",
   resumeUploadToken?: string,
 ) {
-  const identity = await requireIdentity(ctx);
-  const userId = await upsertUser(
-    ctx,
-    identity.tokenIdentifier,
-    identity.email,
-    identity.name ?? `${data.firstName} ${data.lastName}`,
-    identity.subject,
-  );
+  const userId = await resolveAuthenticatedUserId(ctx, {
+    displayName: `${data.firstName} ${data.lastName}`,
+  });
   const { hackathonId, resumeStorageId: rawStorageId, ...fields } = data;
-  const hackathon = await ctx.db
-    .query("hackathons")
-    .withIndex("by_slug", (q) => q.eq("slug", hackathonId))
-    .first();
-  if (!hackathon) {
-    throw new Error("Hackathon not found.");
-  }
+  await ensureHackathon(ctx, hackathonId);
 
   const existing = await ctx.db
     .query("registrations")
@@ -349,14 +269,7 @@ export const syncUser = mutation({
     displayName: v.optional(v.string()),
   },
   handler: async (ctx, { email, displayName }) => {
-    const identity = await requireIdentity(ctx);
-    const userId = await upsertUser(
-      ctx,
-      identity.tokenIdentifier,
-      identity.email ?? email,
-      identity.name ?? displayName,
-      identity.subject,
-    );
+    const userId = await resolveAuthenticatedUserId(ctx, { email, displayName });
     return { userId, ok: true as const };
   },
 });

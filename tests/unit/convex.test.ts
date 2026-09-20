@@ -197,14 +197,18 @@ describe("convex registrations", () => {
     })).rejects.toThrow("Invalid registration data.");
   });
 
-  it("rejects registration for a missing hackathon", async () => {
+  it("auto-seeds hackuta-2026 on first registration", async () => {
     const t = createTest().withIdentity({
       tokenIdentifier: "browser-one",
     }) as unknown as ConvexTestClient;
 
     await expect(
-      t.mutation("registrations:register", { data: validRegistrationData }),
-    ).rejects.toThrow("Hackathon not found.");
+      t.query("queries:getHackathonBySlug", { slug: "hackuta-2026" }),
+    ).resolves.toBeNull();
+    await t.mutation("registrations:register", { data: validRegistrationData });
+    await expect(
+      t.query("queries:getHackathonBySlug", { slug: "hackuta-2026" }),
+    ).resolves.toMatchObject({ slug: "hackuta-2026", name: "HackUTA 2026" });
   });
 
   it("rejects unauthenticated registration", async () => {

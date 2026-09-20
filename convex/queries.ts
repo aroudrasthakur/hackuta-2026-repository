@@ -1,32 +1,11 @@
-import { query, type QueryCtx } from "./_generated/server";
+import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { resolveAuthenticatedUser } from "./authenticatedUser";
 import { isRegistrationAdmin } from "./registrationSecurity";
-
-async function requireAuthenticatedUser(ctx: QueryCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new Error("Authentication required.");
-  }
-
-  let user = await ctx.db
-    .query("users")
-    .withIndex("by_identity_key", (q) => q.eq("identityKey", identity.tokenIdentifier))
-    .first();
-  if (!user && identity.subject) {
-    user = await ctx.db
-      .query("users")
-      .withIndex("by_auth_subject", (q) => q.eq("authSubject", identity.subject))
-      .first();
-  }
-  if (!user) {
-    throw new Error("Authenticated user has not been synchronized.");
-  }
-  return user;
-}
 
 export const getCurrentUser = query({
   args: {},
-  handler: async (ctx) => requireAuthenticatedUser(ctx),
+  handler: async (ctx) => resolveAuthenticatedUser(ctx),
 });
 
 /**
@@ -35,7 +14,7 @@ export const getCurrentUser = query({
 export const getRegistrationsByUser = query({
   args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
-    const user = await requireAuthenticatedUser(ctx);
+    const user = await resolveAuthenticatedUser(ctx);
     if (user._id !== userId) {
       throw new Error("Not authorized to access this user's registrations.");
     }
@@ -52,7 +31,7 @@ export const getRegistrationsByUser = query({
 export const getRegistration = query({
   args: { registrationId: v.id("registrations") },
   handler: async (ctx, { registrationId }) => {
-    const user = await requireAuthenticatedUser(ctx);
+    const user = await resolveAuthenticatedUser(ctx);
     const registration = await ctx.db.get(registrationId);
     if (!registration || registration.userId !== user._id) {
       throw new Error("Not authorized to access this registration.");
