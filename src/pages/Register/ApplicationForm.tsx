@@ -18,12 +18,14 @@ import {
   FieldError,
   SelectField,
   TextField,
+} from "./components/FormFields";
+import {
   fieldClass,
   fieldsetErrorClass,
   inputClass,
   labelClass,
   legendClass,
-} from "./components/FormFields";
+} from "./components/formFieldStyles";
 import {
   discardResumeUpload,
   submitRegistration,

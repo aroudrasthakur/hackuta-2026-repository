@@ -152,9 +152,13 @@ describe("submitRegistration", () => {
   it("maps server failures to a friendly error", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
     vi.resetModules();
-    mutationMock.mockRejectedValue(new Error("server failure"));
+    const serverError = new Error("server failure");
+    mutationMock.mockRejectedValue(serverError);
     const { submitRegistration } = await import("../../src/pages/Register/registerApi");
-    await expect(submitRegistration(payload, "test-token")).rejects.toThrow("server failure");
+    await expect(submitRegistration(payload, "test-token")).rejects.toMatchObject({
+      message: "server failure",
+      cause: serverError,
+    });
   });
 });
 

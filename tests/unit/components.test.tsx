@@ -21,8 +21,8 @@ import {
   RequiredMark,
   SelectField,
   TextField,
-  fieldsetErrorClass,
 } from "../../src/pages/Register/components/FormFields";
+import { fieldsetErrorClass } from "../../src/pages/Register/components/formFieldStyles";
 import { renderWithRouter } from "./test-utils";
 
 vi.mock("../../src/components/HeroAtmosphere", () => ({

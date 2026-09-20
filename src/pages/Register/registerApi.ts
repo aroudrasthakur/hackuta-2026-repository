@@ -37,9 +37,9 @@ async function callConvexMutation<T>(
     }
     const detail = error instanceof Error ? error.message.trim() : "";
     if (import.meta.env.DEV && detail && detail !== "Server Error") {
-      throw new Error(detail);
+      throw new Error(detail, { cause: error });
     }
-    throw new Error(SUBMIT_ERROR_MESSAGE);
+    throw new Error(SUBMIT_ERROR_MESSAGE, { cause: error });
   }
 }
 
