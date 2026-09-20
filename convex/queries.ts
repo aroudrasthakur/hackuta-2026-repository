@@ -40,6 +40,41 @@ export const getRegistration = query({
 });
 
 /**
+ * Find the current applicant's registration by email. This is a lightweight
+ * fallback while the real auth provider is still being wired up.
+ */
+export const getRegistrationByEmail = query({
+  args: { email: v.string(), hackathonId: v.string() },
+  handler: async (ctx, { email, hackathonId }) => {
+    const normalized = email.toLowerCase().trim();
+
+    const registrations = await ctx.db
+      .query("registrations")
+      .withIndex("by_hackathon_status", (q) => q.eq("hackathonId", hackathonId))
+      .collect();
+
+    const registration = registrations.find((item) =>
+      item.answers.email?.toLowerCase() === normalized,
+    );
+
+    if (!registration) {
+      return null;
+    }
+
+    return {
+      firstName: registration.answers.firstName,
+      lastName: registration.answers.lastName,
+      hackathonId: registration.hackathonId,
+      status: registration.status,
+      eligibilityStatus: registration.eligibilityStatus,
+      submittedAt: registration.submittedAt ?? null,
+      reviewedAt: registration.reviewedAt ?? null,
+      updatedAt: registration.updatedAt,
+    };
+  },
+});
+
+/**
  * Return the signed-in user's profile status without accepting a client-owned
  * user id. The identity subject is the ownership boundary.
  */

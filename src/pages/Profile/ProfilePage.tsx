@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "../../components/art/Logo";
+import { getStoredEmail } from "../../utils/session";
 
 type Profile = {
   firstName: string;
@@ -40,12 +41,27 @@ function formatDate(timestamp: number | null) {
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "empty" | "error" | "auth">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "empty" | "error" | "auth">(() =>
+    getStoredEmail() ? "loading" : "auth",
+  );
 
   useEffect(() => {
     let active = true;
+    const email = getStoredEmail();
 
-    fetch("/api/profile", { headers: { Accept: "application/json" } })
+    if (!email) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetch("/api/profile", {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        "X-HackUTA-Email": email,
+      },
+    })
       .then(async (response) => {
         if (response.status === 401) {
           setState("auth");
@@ -64,12 +80,14 @@ export default function ProfilePage() {
         setProfile(data);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((error) => {
+        if (!active || (error instanceof Error && error.name === "AbortError")) return;
+        setState("error");
       });
 
     return () => {
       active = false;
+      controller.abort();
     };
   }, []);
 
