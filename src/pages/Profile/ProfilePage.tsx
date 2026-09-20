@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "../../components/art/Logo";
-import { getStoredEmail } from "../../utils/session";
+import { clearStoredEmail, getStoredEmail } from "../../utils/session";
 
 type Profile = {
   firstName: string;
@@ -44,6 +44,14 @@ export default function ProfilePage() {
   const [state, setState] = useState<"loading" | "ready" | "empty" | "error" | "auth">(() =>
     getStoredEmail() ? "loading" : "auth",
   );
+  const navigate = useNavigate();
+
+  const signOut = () => {
+    clearStoredEmail();
+    setProfile(null);
+    setState("auth");
+    navigate("/register", { replace: true });
+  };
 
   useEffect(() => {
     let active = true;
@@ -125,6 +133,12 @@ export default function ProfilePage() {
               <div role="alert">
                 <h2 className="font-(family-name:--font-display) text-3xl">Sign in required</h2>
                 <p className="mt-3 text-(--color-mist)">Please sign in with the account used for your application.</p>
+                <Link
+                  to="/register"
+                  className="mt-6 inline-flex items-center justify-center border border-(--color-ocean) px-5 py-3 text-sm uppercase tracking-[0.1em] text-(--color-sand)"
+                >
+                  Go to application
+                </Link>
               </div>
             )}
             {state === "error" && (
@@ -168,6 +182,13 @@ export default function ProfilePage() {
                 <p className="mt-8 border-l-2 border-(--color-sand) pl-4 text-sm text-(--color-mist)">
                   This page is view only. Questions about your application? Reply to the HackUTA email you received.
                 </p>
+                <button
+                  type="button"
+                  onClick={signOut}
+                  className="mt-8 text-sm uppercase tracking-[0.12em] text-(--color-sand) underline decoration-(--color-ocean) underline-offset-8"
+                >
+                  Sign out
+                </button>
               </div>
             )}
           </div>
