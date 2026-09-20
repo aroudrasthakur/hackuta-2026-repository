@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MIN_GRADUATION_YEAR } from "../../shared/registration/constants";
 import { ApplicationForm } from "../../src/pages/Register/ApplicationForm";
 import { SuccessStep } from "../../src/pages/Register/SuccessStep";
@@ -8,6 +8,8 @@ import { renderWithRouter } from "./test-utils";
 
 vi.mock("../../src/pages/Register/registerApi", () => ({
   submitRegistration: vi.fn(),
+  uploadResume: vi.fn(),
+  discardResumeUpload: vi.fn(),
 }));
 
 async function fillValidApplication(user: ReturnType<typeof userEvent.setup>) {
@@ -40,6 +42,82 @@ describe("SuccessStep", () => {
 });
 
 describe("ApplicationForm", () => {
+  beforeEach(async () => {
+    const api = await import("../../src/pages/Register/registerApi");
+    vi.mocked(api.submitRegistration).mockResolvedValue({ ok: true });
+    vi.mocked(api.uploadResume).mockResolvedValue({ storageId: "resume-id", uploadToken: "upload-token" });
+    vi.mocked(api.discardResumeUpload).mockResolvedValue(undefined);
+  });
+
+  it("corrects validation errors and submits optional details with a PDF only once", async () => {
+    const user = userEvent.setup();
+    const onSubmitted = vi.fn();
+    const { submitRegistration, uploadResume } = await import("../../src/pages/Register/registerApi");
+    let finish!: (value: { ok: true }) => void;
+    vi.mocked(uploadResume).mockClear().mockResolvedValue({ storageId: "resume-id", uploadToken: "upload-token" });
+    vi.mocked(submitRegistration).mockClear().mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    render(<ApplicationForm onSubmitted={onSubmitted} />);
+    await user.click(screen.getByRole("button", { name: "Submit application" }));
+    await fillValidApplication(user);
+    expect(screen.queryByText("First name is required.")).not.toBeInTheDocument();
+    await user.click(within(screen.getByRole("group", { name: /Dietary restrictions/ })).getByLabelText(/^Other$/));
+    await user.click(screen.getByRole("button", { name: "Submit application" }));
+    expect(screen.getByText("Please describe your dietary restriction.")).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("Tell us more"), "No peanuts");
+    await user.type(screen.getByLabelText("LinkedIn (optional)"), "https://linkedin.com/in/sam");
+    await user.type(screen.getByLabelText("Portfolio (optional)"), "https://example.com/sam");
+    await user.type(screen.getByLabelText(/Accessibility needs/), "Step-free access");
+    await user.click(screen.getByLabelText(/^No$/));
+    const resume = new File(["%PDF-1.7"], "resume.pdf", { type: "application/pdf" });
+    await user.upload(screen.getByLabelText("Resume (optional)"), resume);
+    const button = screen.getByRole("button", { name: "Submit application" });
+    await user.click(button);
+    expect(button).toBeDisabled();
+    expect(screen.getByLabelText("Resume (optional)")).toBeDisabled();
+    fireEvent.submit(button.closest("form")!);
+    expect(submitRegistration).toHaveBeenCalledTimes(1);
+    expect(uploadResume).toHaveBeenCalledWith(resume);
+    expect(submitRegistration).toHaveBeenCalledWith(expect.objectContaining({
+      otherDietary: "No peanuts", linkedin: "https://linkedin.com/in/sam", portfolio: "https://example.com/sam",
+      accessibilityNeeds: "Step-free access", firstHackathon: false,
+    }), { storageId: "resume-id", uploadToken: "upload-token" });
+    finish({ ok: true });
+    await waitFor(() => expect(onSubmitted).toHaveBeenCalledOnce());
+  }, 10_000);
+
+  it("selects and removes a PDF resume", async () => {
+    const user = userEvent.setup();
+    render(<ApplicationForm onSubmitted={vi.fn()} />);
+    const input = screen.getByLabelText("Resume (optional)") as HTMLInputElement;
+    const file = new File(["%PDF-1.7"], "resume.pdf", { type: "application/pdf" });
+    await user.upload(input, file);
+    expect(input.files?.[0]).toBe(file);
+    await user.upload(input, []);
+    expect(screen.queryByRole("button", { name: "Remove resume" })).not.toBeInTheDocument();
+    await user.upload(input, file);
+    await user.click(screen.getByRole("button", { name: "Remove resume" }));
+    expect(input.files).toHaveLength(0);
+  });
+
+  it("shows an inline error for a non-PDF resume", async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    render(<ApplicationForm onSubmitted={vi.fn()} />);
+    await user.upload(screen.getByLabelText("Resume (optional)"), new File(["text"], "resume.docx"));
+    expect(screen.getByText("Please select a PDF file.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Resume (optional)")).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("clears a resume error after selecting a valid PDF", async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    render(<ApplicationForm onSubmitted={vi.fn()} />);
+    const input = screen.getByLabelText("Resume (optional)");
+    await user.upload(input, new File(["text"], "resume.docx"));
+    expect(screen.getByText("Please select a PDF file.")).toBeInTheDocument();
+    await user.upload(input, new File(["%PDF-1.7"], "resume.pdf", { type: "application/pdf" }));
+    expect(screen.queryByText("Please select a PDF file.")).not.toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "false");
+  });
+
   it("submits a valid application", async () => {
     const user = userEvent.setup();
     const onSubmitted = vi.fn();
