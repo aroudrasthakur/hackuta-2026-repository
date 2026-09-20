@@ -16,7 +16,9 @@ export const registrationAnswers = v.object({
   tshirtSize: v.optional(v.string()),
   firstHackathon: v.optional(v.boolean()),
   hearAbout: v.optional(v.string()),
+  // Retained for registrations created before PDF uploads were introduced.
   resumeUrl: v.optional(v.string()),
+  resumeStorageId: v.optional(v.id("_storage")),
   linkedin: v.optional(v.string()),
   github: v.optional(v.string()),
   portfolio: v.optional(v.string()),

@@ -29,3 +29,11 @@ npm run dev
 ```
 
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173).
+
+## Resume upload deployment
+
+Set `VITE_CONVEX_URL` and `VITE_CONVEX_SITE_URL` in the frontend deployment. Set
+`REGISTRATION_ALLOWED_ORIGINS` on the Convex deployment to the comma-separated,
+exact website origins that may upload resumes. Resume objects stay in private
+Convex storage; any future reviewer download endpoint must authenticate the
+reviewer and authorize access before returning file bytes.

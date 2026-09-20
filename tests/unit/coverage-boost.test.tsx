@@ -7,6 +7,8 @@ import { renderWithRouter } from "./test-utils";
 
 vi.mock("../../src/pages/Register/registerApi", () => ({
   submitRegistration: vi.fn(),
+  uploadResume: vi.fn(),
+  discardResumeUpload: vi.fn(),
 }));
 
 describe("register constants re-export", () => {
