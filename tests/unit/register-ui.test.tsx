@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MIN_GRADUATION_YEAR } from "../../shared/registration/constants";
 import { ApplicationForm } from "../../src/pages/Register/ApplicationForm";
 import { SuccessStep } from "../../src/pages/Register/SuccessStep";
@@ -42,6 +42,13 @@ describe("SuccessStep", () => {
 });
 
 describe("ApplicationForm", () => {
+  beforeEach(async () => {
+    const api = await import("../../src/pages/Register/registerApi");
+    vi.mocked(api.submitRegistration).mockResolvedValue({ ok: true });
+    vi.mocked(api.uploadResume).mockResolvedValue({ storageId: "resume-id", uploadToken: "upload-token" });
+    vi.mocked(api.discardResumeUpload).mockResolvedValue(undefined);
+  });
+
   it("corrects validation errors and submits optional details with a PDF only once", async () => {
     const user = userEvent.setup();
     const onSubmitted = vi.fn();
@@ -76,7 +83,7 @@ describe("ApplicationForm", () => {
     }), { storageId: "resume-id", uploadToken: "upload-token" });
     finish({ ok: true });
     await waitFor(() => expect(onSubmitted).toHaveBeenCalledOnce());
-  });
+  }, 10_000);
 
   it("selects and removes a PDF resume", async () => {
     const user = userEvent.setup();

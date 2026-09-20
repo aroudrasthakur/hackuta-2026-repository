@@ -7,6 +7,7 @@ import { MIN_GRADUATION_YEAR } from "../../shared/registration/constants";
 
 const modules = import.meta.glob("../../convex/**/*.ts", { eager: false });
 const register = makeFunctionReference<"mutation">("registrations:register");
+const submitRegistrationMutation = makeFunctionReference<"mutation">("registrations:submitRegistration");
 const remove = makeFunctionReference<"mutation">("registrations:deleteResumeUpload");
 const reserve = makeFunctionReference<"mutation">("registrations:reserveResumeUpload");
 const cleanup = makeFunctionReference<"mutation">("registrations:cleanupExpiredResumeUploads");
@@ -45,7 +46,16 @@ const validRegistrationData = {
   hackathonId: "hackuta-2026",
 };
 
+const TEST_ORIGIN = "https://hackuta.test";
+const uploadHeaders = {
+  "Content-Type": "application/pdf",
+  Origin: TEST_ORIGIN,
+  "X-Test-Origin": TEST_ORIGIN,
+  "X-Forwarded-For": "192.0.2.10",
+};
+
 const createTest = () => convexTest(schema, modules);
+
 
 async function pdfBytes() {
   const pdf = await PDFDocument.create();
@@ -133,6 +143,12 @@ describe("convex registrations", () => {
     clock.mockRestore();
   });
 
+  it("accepts the submitRegistration alias", async () => {
+    const t = createTest();
+    await expect(t.mutation(submitRegistrationMutation, { data: validRegistrationData }))
+      .resolves.toMatchObject({ ok: true, isNew: true });
+  });
+
   it("creates and updates registrations without a resume", async () => {
     const t = createTest() as unknown as ConvexTestClient;
     expect(await t.mutation("registrations:register", { data: validRegistrationData }))
@@ -155,16 +171,43 @@ describe("convex registrations", () => {
 describe("resume HTTP validation and lifecycle", () => {
   it("handles CORS preflight without a response body", async () => {
     const t = createTest();
-    const preflight = await t.fetch("/resume-upload", { method: "OPTIONS" });
+    const preflight = await t.fetch("/resume-upload", {
+      method: "OPTIONS",
+      headers: { Origin: TEST_ORIGIN, "X-Test-Origin": TEST_ORIGIN },
+    });
     expect(preflight.status).toBe(204);
     expect(await preflight.text()).toBe("");
+  });
+
+  it("rejects uploads without an allowed browser origin", async () => {
+    const t = createTest();
+    const result = await t.fetch("/resume-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/pdf", "X-Forwarded-For": "192.0.2.10" },
+      body: await pdfBytes(),
+    });
+    expect(result.status).toBe(403);
+  });
+
+  it("rejects uploads from a disallowed origin", async () => {
+    const t = createTest();
+    const result = await t.fetch("/resume-upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/pdf",
+        Origin: "https://evil.example",
+        "X-Forwarded-For": "192.0.2.10",
+      },
+      body: await pdfBytes(),
+    });
+    expect(result.status).toBe(403);
   });
 
   it("parses, stores, and binds a valid PDF through the HTTP upload route", async () => {
     const t = createTest();
     const result = await t.fetch("/resume-upload", {
       method: "POST",
-      headers: { "Content-Type": "application/pdf", "X-Forwarded-For": "192.0.2.10" },
+      headers: uploadHeaders,
       body: await pdfBytes(),
     });
     expect(result.status).toBe(201);
@@ -184,11 +227,73 @@ describe("resume HTTP validation and lifecycle", () => {
     const t = createTest();
     const result = await t.fetch("/resume-upload", {
       method: "POST",
-      headers: { "Content-Type": "application/pdf" },
+      headers: uploadHeaders,
       body: "%PDF-1.7\nnot actually a PDF",
     });
     expect(result.status).toBe(422);
     expect(await t.run((ctx) => ctx.db.system.query("_storage").collect())).toEqual([]);
+  });
+
+  it("accepts PDF content types with parameters", async () => {
+    const t = createTest();
+    const result = await t.fetch("/resume-upload", {
+      method: "POST",
+      headers: { ...uploadHeaders, "Content-Type": "application/pdf; charset=binary" },
+      body: await pdfBytes(),
+    });
+    expect(result.status).toBe(201);
+  });
+
+  it("rejects non-PDF content types before reading the body", async () => {
+    const t = createTest();
+    const result = await t.fetch("/resume-upload", {
+      method: "POST",
+      headers: { ...uploadHeaders, "Content-Type": "text/plain" },
+      body: await pdfBytes(),
+    });
+    expect(result.status).toBe(415);
+  });
+
+  it("rejects empty uploads and oversized bodies", async () => {
+    const t = createTest();
+    expect((await t.fetch("/resume-upload", {
+      method: "POST",
+      headers: uploadHeaders,
+      body: new Uint8Array(),
+    })).status).toBe(413);
+
+    expect((await t.fetch("/resume-upload", {
+      method: "POST",
+      headers: uploadHeaders,
+      body: new Uint8Array(5 * 1024 * 1024 + 1),
+    })).status).toBe(413);
+  });
+
+  it("rate limits repeated uploads from the same client address", async () => {
+    const t = createTest();
+    for (let index = 0; index < 5; index += 1) {
+      const ok = await t.fetch("/resume-upload", {
+        method: "POST",
+        headers: uploadHeaders,
+        body: await pdfBytes(),
+      });
+      expect(ok.status).toBe(201);
+    }
+    const limited = await t.fetch("/resume-upload", {
+      method: "POST",
+      headers: uploadHeaders,
+      body: await pdfBytes(),
+    });
+    expect(limited.status).toBe(429);
+  });
+
+  it("rejects CORS preflight from a disallowed origin", async () => {
+    const t = createTest();
+    const preflight = await t.fetch("/resume-upload", {
+      method: "OPTIONS",
+      headers: { Origin: "https://evil.example" },
+    });
+    expect(preflight.status).toBe(403);
   });
 
   it("keeps an attached resume and permits idempotent resubmission", async () => {
@@ -211,6 +316,17 @@ describe("resume HTTP validation and lifecycle", () => {
     await expect(t.mutation(register, {
       data: { ...validRegistrationData, firstName: "Other", resumeStorageId: upload.storageId },
     })).rejects.toThrow("already attached");
+  });
+
+  it("ignores delete requests for consumed upload capabilities", async () => {
+    const t = createTest();
+    const upload = await verifiedUpload(t);
+    await t.mutation(register, {
+      data: { ...validRegistrationData, resumeStorageId: upload.storageId },
+      resumeUploadToken: upload.token,
+    });
+    await expect(t.mutation(remove, { uploadToken: upload.token })).resolves.toEqual({ ok: true });
+    expect(await t.run((ctx) => ctx.db.system.get("_storage", upload.storageId))).not.toBeNull();
   });
 
   it("deletes an unconsumed upload only with its capability", async () => {
@@ -236,6 +352,16 @@ describe("resume HTTP validation and lifecycle", () => {
     expect(await t.run((ctx) => ctx.db.system.get("_storage", second.storageId))).not.toBeNull();
   });
 
+  it("scheduled cleanup removes expired rate-limit records", async () => {
+    const t = createTest();
+    const stale = Date.now() - 31 * 60 * 1000;
+    await t.run((ctx) => ctx.db.insert("resumeUploadRequests", { userKey: "stale", createdAt: stale }));
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now());
+    await t.mutation(cleanup, {});
+    expect(await t.run((ctx) => ctx.db.query("resumeUploadRequests").collect())).toEqual([]);
+    clock.mockRestore();
+  });
+
   it("scheduled cleanup removes expired unassociated files but preserves attached files", async () => {
     const t = createTest();
     const orphan = await verifiedUpload(t, "orphan-token");
@@ -259,5 +385,51 @@ describe("convex queries", () => {
     await expect(t.query("queries:getUserByEmail", { email: "missing@example.com" })).resolves.toBeNull();
     await expect(t.query("queries:getHackathonBySlug", { slug: "missing" })).resolves.toBeNull();
     await expect(t.query("queries:getRegistrationsByUser", { userId: "missing" })).resolves.toEqual([]);
+  });
+
+  it("returns stored users, registrations, and hackathons", async () => {
+    const t = createTest();
+    const client = t as unknown as ConvexTestClient;
+    const userId = await t.run((ctx) => ctx.db.insert("users", {
+      email: "sam@example.com",
+      displayName: "Sam Test",
+      createdAt: Date.now(),
+    }));
+    const hackathonId = await t.run((ctx) => ctx.db.insert("hackathons", {
+      slug: "hackuta-2026",
+      name: "HackUTA 2026",
+      startsAt: Date.now(),
+      endsAt: Date.now() + 86_400_000,
+      registrationOpensAt: Date.now(),
+      registrationClosesAt: Date.now() + 86_400_000,
+    }));
+    const registrationId = await t.run((ctx) => ctx.db.insert("registrations", {
+      userId: "mock-user:sam-test-5551234567",
+      hackathonId: "hackuta-2026",
+      status: "submitted",
+      eligibilityStatus: "unreviewed",
+      answers: {
+        firstName: validRegistrationData.firstName,
+        lastName: validRegistrationData.lastName,
+        phone: validRegistrationData.phone,
+        major: validRegistrationData.major,
+      },
+      updatedAt: Date.now(),
+    }));
+
+    await expect(client.query("queries:getUserByEmail", { email: " sam@example.com " })).resolves.toMatchObject({
+      _id: userId,
+      email: "sam@example.com",
+    });
+    await expect(client.query("queries:getHackathonBySlug", { slug: "hackuta-2026" })).resolves.toMatchObject({
+      _id: hackathonId,
+    });
+    await expect(client.query("queries:getRegistrationsByUser", { userId: "mock-user:sam-test-5551234567" }))
+      .resolves.toHaveLength(1);
+    await expect(client.query("queries:getRegistrationsByHackathon", { hackathonId: "hackuta-2026" }))
+      .resolves.toHaveLength(1);
+    await expect(client.query("queries:getRegistration", { registrationId })).resolves.toMatchObject({
+      status: "submitted",
+    });
   });
 });

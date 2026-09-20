@@ -154,6 +154,14 @@ describe("discardResumeUpload", () => {
     vi.restoreAllMocks();
   });
 
+  it("ignores cleanup failures", async () => {
+    vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
+    vi.resetModules();
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
+    const { discardResumeUpload } = await import("../../src/pages/Register/registerApi");
+    await expect(discardResumeUpload("upload-token")).resolves.toBeUndefined();
+  });
+
   it("requests server cleanup for a pending upload token", async () => {
     vi.stubEnv("VITE_CONVEX_URL", "https://example.convex.cloud");
     vi.resetModules();

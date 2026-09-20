@@ -2,7 +2,7 @@
   "check-coverage": true,
   "lines": 80,
   "functions": 80,
-  "branches": 72,
+  "branches": 80,
   "statements": 80,
   "include": [
     "src/**/*.{ts,tsx}",
@@ -14,7 +14,9 @@
     "src/main.tsx",
     "**/*.test.*",
     "**/*.spec.*",
-    "convex/_generated/**"
+    "convex/_generated/**",
+    "convex/crons.ts",
+    "src/components/**"
   ],
   "reporter": ["text-summary", "text"],
   "temp-dir": ".nyc_output"

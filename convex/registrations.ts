@@ -80,6 +80,7 @@ export const recordVerifiedResumeUpload = internalMutation({
       createdAt: now,
       verifiedAt: now,
     });
+    await ctx.scheduler.runAfter(RESUME_UPLOAD_EXPIRY_MS, cleanupExpiredResumeUploadsRef, {});
   },
 });
 
@@ -130,6 +131,8 @@ async function upsertRegistration(
       session.createdAt >= now - RESUME_UPLOAD_EXPIRY_MS
     );
 
+    // New attachments must come from the HTTP upload route, which parses bytes with
+    // pdf-lib before storage and issues a short-lived capability token (verifiedAt).
     if (
       !metadata ||
       metadata.contentType !== "application/pdf" ||

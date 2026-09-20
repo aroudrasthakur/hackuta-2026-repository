@@ -40,6 +40,8 @@ jobs:
         run: npm run typecheck
 
       - name: Run unit tests with coverage
+        env:
+          REGISTRATION_ALLOWED_ORIGINS: https://hackuta.test
         run: npm run test:unit:coverage
 
       - name: Build production application

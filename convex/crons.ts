@@ -3,9 +3,9 @@ import { makeFunctionReference } from "convex/server";
 
 const crons = cronJobs();
 
-crons.hourly(
+crons.interval(
   "delete expired unassociated resume uploads",
-  { minuteUTC: 17 },
+  { minutes: 15 },
   makeFunctionReference<"mutation">("registrations:cleanupExpiredResumeUploads"),
   {},
 );

@@ -2,6 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
+process.env.REGISTRATION_ALLOWED_ORIGINS ??= "https://hackuta.test";
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
