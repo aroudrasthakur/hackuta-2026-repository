@@ -8,6 +8,9 @@
         },
         {
             "path": "../hackuta-2026-registration"
+        },
+        {
+            "path": "../hackuta-2026-admin"
         }
     ]
 }
