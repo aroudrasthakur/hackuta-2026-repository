@@ -10,6 +10,7 @@ import { Hero } from "../../src/components/Hero";
 import { OdysseyButton } from "../../src/components/OdysseyButton";
 import { Schedule } from "../../src/components/Schedule";
 import { Sponsors } from "../../src/components/Sponsors";
+import { REGISTER_URL } from "../../src/constants/site";
 import { CoastCliff } from "../../src/components/art/CoastCliff";
 import { HeatWaveDefs } from "../../src/components/art/HeatWave";
 import { Logo } from "../../src/components/art/Logo";
@@ -98,6 +99,11 @@ describe("Hero", () => {
   it("renders the hero heading", () => {
     render(<Hero motionEnabled={false} />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("HackUTA");
+  });
+
+  it("links Apply to the registration site", () => {
+    render(<Hero motionEnabled={false} />);
+    expect(screen.getByRole("link", { name: "Apply" })).toHaveAttribute("href", REGISTER_URL);
   });
 });
 

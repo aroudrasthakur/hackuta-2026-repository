@@ -13,6 +13,7 @@ import { CoastCliff } from "./art/CoastCliff";
 import { Logo } from "./art/Logo";
 import { HeroCountdown } from "./Countdown";
 
+import { REGISTER_URL } from "../constants/site";
 import { HERO_AMBIENT_STORM } from "../constants/heroWeather";
 import { clamp01 } from "../utils/clamp";
 
@@ -347,11 +348,9 @@ export function Hero({ motionEnabled }: HeroProps) {
               </span>
             </h1>
 
-            <div className="od-hero-coming-soon">
-              <span className="od-hero-coming-soon-mark" aria-hidden="true" />
-
-              <span>Coming soon</span>
-            </div>
+            <a className="od-hero-apply-btn" href={REGISTER_URL}>
+              Apply
+            </a>
 
             <HeroCountdown />
           </div>
