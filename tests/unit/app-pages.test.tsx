@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import HomePage from "../../src/pages/HomePage";
-import { renderWithRouter } from "./test-utils";
+import RegisterRedirect from "../../src/pages/RegisterRedirect";
+import { REGISTER_URL } from "../../src/constants/site";
 
 vi.mock("../../src/components/cursor/CustomCursor", () => ({
   default: () => null,
@@ -30,12 +31,20 @@ describe("HomePage", () => {
   });
 });
 
-describe("RegisterPage", () => {
-  it("renders the application step by default", async () => {
-    const RegisterPage = (await import("../../src/pages/Register/RegisterPage")).default;
-    renderWithRouter(<RegisterPage />, "/register");
+describe("RegisterRedirect", () => {
+  it("sends visitors to the registration site and offers a manual link", () => {
+    const replace = vi.fn();
+    vi.spyOn(window, "location", "get").mockReturnValue({
+      ...window.location,
+      replace,
+    } as unknown as Location);
 
-    expect(screen.getByRole("heading", { name: "Tell us about yourself" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "HackUTA home" })).toHaveAttribute("href", "/");
+    render(<RegisterRedirect />);
+
+    expect(replace).toHaveBeenCalledWith(REGISTER_URL);
+    expect(screen.getByRole("link", { name: /Continue to/ })).toHaveAttribute(
+      "href",
+      REGISTER_URL,
+    );
   });
 });

@@ -2,9 +2,8 @@ import type { ReactNode, MouseEvent } from "react";
 import { Logo } from "./art/Logo";
 import { Ship } from "./art/Ship";
 import { PRIMARY_NAV_LINKS } from "../constants/navigation";
+import { REGISTER_URL } from "../constants/site";
 import { scrollToSection } from "../utils/scrollToSection";
-
-const exploreLinks = [...PRIMARY_NAV_LINKS, { id: "about", label: "Apply" }];
 
 const otherHackathons = [
   { href: "https://hackutd.co/", label: "HackUTD" },
@@ -157,13 +156,16 @@ export function Footer({ motionEnabled = true }: { motionEnabled?: boolean }) {
 
           <InfoColumn title="Explore">
             <ul className="footer-link-list">
-              {exploreLinks.map((link) => (
+              {PRIMARY_NAV_LINKS.map((link) => (
                 <li key={link.label}>
                   <a href={`#${link.id}`} onClick={navigate(link.id)}>
                     {link.label}
                   </a>
                 </li>
               ))}
+              <li>
+                <a href={REGISTER_URL}>Apply</a>
+              </li>
             </ul>
           </InfoColumn>
 

@@ -38,6 +38,7 @@ test.describe("404 page", () => {
     await page.getByRole("link", { name: "Return home" }).click();
 
     await expect(page).toHaveURL("/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("HackUTA");
+    // The hero title types itself in, so assert the stable accessible name.
+    await expect(page.getByRole("heading", { level: 1, name: "HackUTA 26" })).toBeVisible();
   });
 });

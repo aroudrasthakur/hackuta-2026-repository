@@ -7,26 +7,15 @@ export default defineConfig({
     environment: "happy-dom",
     setupFiles: ["./tests/unit/setup.ts"],
     include: ["tests/unit/**/*.test.{ts,tsx}"],
-    env: {
-      REGISTRATION_ALLOWED_ORIGINS: "https://hackuta.test",
-      REGISTRATION_ADMIN_IDENTITY_KEYS: "provider-user",
-    },
     coverage: {
       provider: "istanbul",
-      include: [
-        "src/**/*.{ts,tsx}",
-        "shared/**/*.ts",
-        "convex/**/*.ts",
-        "security/**/*.ts",
-      ],
+      include: ["src/**/*.{ts,tsx}", "security/**/*.ts"],
       exclude: [
         "**/*.d.ts",
         "**/*.test.ts",
         "**/*.test.tsx",
         "**/*.spec.ts",
         "src/main.tsx",
-        "convex/_generated/**",
-        "convex/crons.ts",
         // Browser-only WebGL/cursor effects; covered by Playwright e2e.
         "src/components/HeroAtmosphere.tsx",
         "src/components/HeroWaves.tsx",

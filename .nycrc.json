@@ -6,16 +6,12 @@
   "statements": 80,
   "include": [
     "src/**/*.{ts,tsx}",
-    "shared/**/*.ts",
-    "convex/**/*.ts",
     "security/**/*.ts"
   ],
   "exclude": [
     "src/main.tsx",
     "**/*.test.*",
     "**/*.spec.*",
-    "convex/_generated/**",
-    "convex/crons.ts",
     "src/components/**"
   ],
   "reporter": ["text-summary", "text"],

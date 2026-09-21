@@ -16,8 +16,8 @@ export default defineConfig({
     tailwindcss(),
     instrumentForCoverage &&
       istanbul({
-        include: ['src/**/*', 'shared/**/*', 'convex/**/*', 'security/**/*'],
-        exclude: ['**/*.test.*', '**/*.spec.*', 'node_modules/**', 'tests/**', 'convex/_generated/**'],
+        include: ['src/**/*', 'security/**/*'],
+        exclude: ['**/*.test.*', '**/*.spec.*', 'node_modules/**', 'tests/**'],
         extension: ['.js', '.ts', '.tsx'],
         requireEnv: false,
         forceBuildInstrument: true,

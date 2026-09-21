@@ -15,10 +15,6 @@ export default defineConfig({
     ? [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }]
     : [{ name: 'edge', use: { ...devices['Desktop Edge'], channel: 'msedge' } }],
   webServer: {
-    env: {
-      VITE_CONVEX_URL: 'https://registration-test.convex.cloud',
-      VITE_USE_MOCK_API: 'true',
-    },
     command: useProductionBuild
       ? `node ./node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port ${port}`
       : `npm run dev -- --port ${port}`,

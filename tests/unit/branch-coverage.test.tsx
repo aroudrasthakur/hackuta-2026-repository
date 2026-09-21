@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { About } from "../../src/components/About";
 import { Footer } from "../../src/components/Footer";
+import { REGISTER_URL } from "../../src/constants/site";
 import { Schedule } from "../../src/components/Schedule";
 import { Sponsors } from "../../src/components/Sponsors";
 import { OracleEye } from "../../src/components/OracleEye";
@@ -52,17 +52,13 @@ describe("Schedule keyboard shortcuts", () => {
 });
 
 describe("Footer navigation", () => {
-  it("prevents default when in-page navigation succeeds", async () => {
-    const user = userEvent.setup();
-    const about = document.createElement("section");
-    about.id = "about";
-    document.body.appendChild(about);
-
+  it("links Apply to the external registration site", () => {
     render(<Footer motionEnabled />);
-    await user.click(screen.getByRole("link", { name: "Apply" }));
 
-    expect(window.scrollTo).toHaveBeenCalled();
-    document.body.removeChild(about);
+    expect(screen.getByRole("link", { name: "Apply" })).toHaveAttribute(
+      "href",
+      REGISTER_URL,
+    );
   });
 });
 

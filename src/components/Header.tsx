@@ -9,6 +9,7 @@ import {
 import { Logo } from "./art/Logo";
 
 import { PRIMARY_NAV_LINKS } from "../constants/navigation";
+import { REGISTER_URL } from "../constants/site";
 
 import { scrollToSection } from "../utils/scrollToSection";
 import { clamp01 } from "../utils/clamp";
@@ -358,7 +359,7 @@ export function Header() {
               </span>
             </a>
           ))}
-          <a href="/register">
+          <a href={REGISTER_URL}>
             <span>0{PRIMARY_NAV_LINKS.length + 1}</span>
             Apply
             <span className="mobile-nav-arrow" aria-hidden="true">

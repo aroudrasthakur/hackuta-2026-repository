@@ -16,13 +16,6 @@ import { Logo } from "../../src/components/art/Logo";
 import { OliveBranch } from "../../src/components/art/OliveBranch";
 import { Ship } from "../../src/components/art/Ship";
 import { ThemeArt } from "../../src/components/art/ThemeArt";
-import {
-  FieldError,
-  RequiredMark,
-  SelectField,
-  TextField,
-} from "../../src/pages/Register/components/FormFields";
-import { fieldsetErrorClass } from "../../src/pages/Register/components/formFieldStyles";
 import { renderWithRouter } from "./test-utils";
 
 vi.mock("../../src/components/HeroAtmosphere", () => ({
@@ -44,14 +37,14 @@ describe("OdysseyButton", () => {
     );
     expect(screen.getByRole("link", { name: "External" })).toHaveAttribute("href", "https://example.com");
 
-    rerender(<OdysseyButton href="/register">Register</OdysseyButton>);
-    expect(screen.getByRole("link", { name: "Register" })).toHaveAttribute("href", "/register");
+    rerender(<OdysseyButton href="/sponsors">Sponsors</OdysseyButton>);
+    expect(screen.getByRole("link", { name: "Sponsors" })).toHaveAttribute("href", "/sponsors");
 
     rerender(<OdysseyButton href="#about">About</OdysseyButton>);
     expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "#about");
 
     rerender(
-      <OdysseyButton href="/register" inactive>
+      <OdysseyButton href="/sponsors" inactive>
         Disabled link
       </OdysseyButton>,
     );
@@ -61,26 +54,6 @@ describe("OdysseyButton", () => {
   it("renders submit buttons", () => {
     render(<OdysseyButton type="submit">Submit</OdysseyButton>);
     expect(screen.getByRole("button", { name: "Submit" })).toHaveAttribute("type", "submit");
-  });
-});
-
-describe("FormFields", () => {
-  it("renders required marks, errors, and field styles", () => {
-    render(
-      <>
-        <RequiredMark />
-        <FieldError id="standalone-error" message="Required" />
-        <FieldError id="hidden-error" />
-        <TextField id="firstName" label="First name" required error="Required" value="" onChange={() => {}} />
-        <SelectField id="gender" label="Gender" error="Pick one" value="" onChange={() => {}}>
-          <option value="Male">Male</option>
-        </SelectField>
-      </>,
-    );
-
-    expect(screen.getByLabelText(/First name/)).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByLabelText(/Gender/)).toHaveAttribute("aria-invalid", "true");
-    expect(fieldsetErrorClass(true)).toContain("border-red-400");
   });
 });
 

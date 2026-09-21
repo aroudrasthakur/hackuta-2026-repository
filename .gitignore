@@ -13,6 +13,3 @@ coverage/
 .DS_Store
 .playwright-mcp/
 design/
-.next/
-convex/_generated/*
-!convex/_generated/server.ts
