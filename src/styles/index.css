@@ -2525,12 +2525,32 @@
   .lost-page {
     position: relative;
     isolation: isolate;
+    width: 100%;
+    max-width: 100%;
     min-height: 100svh;
+    height: 100dvh;
     overflow: hidden;
     background: var(--night);
     color: var(--light);
-    --lost-ground-height: clamp(72px, 13vh, 150px);
+    --lost-ground-height: clamp(72px, 12dvh, 140px);
     --lost-giant-top: 0px;
+    --lost-scene-h: calc(100dvh - var(--lost-ground-height) - var(--lost-giant-top));
+    --lost-giant-w: calc(var(--lost-scene-h) * 841 / 1800);
+    --lost-trees-room: calc(100dvh - var(--header-height) - var(--lost-ground-height) - 48px);
+    --lost-trees-left-h: min(var(--lost-trees-room), calc(var(--lost-scene-h) * 1302 / 1800));
+    --lost-trees-right-h: min(var(--lost-trees-room), calc(var(--lost-scene-h) * 1434 / 1800));
+    --lost-trees-left-w: calc(var(--lost-trees-left-h) * 1600 / 1302);
+    --lost-trees-right-w: calc(var(--lost-trees-right-h) * 1600 / 1434);
+  }
+
+  :is(html, body):has(.lost-page) {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  :is(html, body):has(.lost-page) #main-content {
+    height: 100%;
+    overflow: hidden;
   }
 
   .lost-page[data-theme="clay"] {
@@ -2594,6 +2614,7 @@
   .lost-ground img {
     width: 100%;
     height: 100%;
+    max-width: none;
     object-fit: cover;
     object-position: center bottom;
   }
@@ -2603,23 +2624,25 @@
     position: absolute;
     bottom: calc(var(--lost-ground-height) + 8px);
     z-index: 2;
-    height: calc((100svh - var(--lost-ground-height) - var(--lost-giant-top)) * 0.7);
   }
 
   .lost-trees-left {
-    left: 0;
-    width: calc((100svh - var(--lost-ground-height) - var(--lost-giant-top)) * 0.7 * 1600 / 1302);
+    height: var(--lost-trees-left-h);
+    width: var(--lost-trees-left-w);
+    left: min(0px, calc(50% - var(--lost-trees-left-w)));
   }
 
   .lost-trees-right {
-    right: 0;
-    width: calc((100svh - var(--lost-ground-height) - var(--lost-giant-top)) * 0.7 * 1600 / 1434);
+    height: var(--lost-trees-right-h);
+    width: var(--lost-trees-right-w);
+    right: min(0px, calc(50% - var(--lost-trees-right-w)));
   }
 
   .lost-trees-left img,
   .lost-trees-right img {
     width: 100%;
     height: 100%;
+    max-width: none;
     object-fit: contain;
   }
 
@@ -2635,15 +2658,16 @@
     position: absolute;
     top: var(--lost-giant-top);
     bottom: var(--lost-ground-height);
-    left: min(16vw, 260px);
+    left: clamp(0px, 12vw, 220px);
     z-index: 3;
-    width: calc((100svh - var(--lost-ground-height) - var(--lost-giant-top)) * 841 / 1800);
+    width: var(--lost-giant-w);
     height: auto;
   }
 
   .lost-giant img {
     width: 100%;
     height: 100%;
+    max-width: none;
     object-fit: contain;
     object-position: left top;
   }
@@ -2700,30 +2724,7 @@
     min-width: min(100%, 240px);
   }
 
-  @media (max-width: 899px) {
-    .lost-trees-left {
-      width: min(32vw, 280px);
-    }
-
-    .lost-trees-right {
-      width: min(30vw, 260px);
-    }
-
-    .lost-giant {
-      left: min(16vw, 140px);
-    }
-  }
-
   @media (max-width: 639px) {
-    .lost-trees-left,
-    .lost-trees-right {
-      width: min(40vw, 180px);
-    }
-
-    .lost-giant {
-      left: 4vw;
-    }
-
     .lost-copy {
       width: min(90vw, 360px);
     }
