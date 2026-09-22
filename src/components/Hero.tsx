@@ -12,8 +12,6 @@ import { Ship } from "./art/Ship";
 import { CoastCliff } from "./art/CoastCliff";
 import { Logo } from "./art/Logo";
 import { HeroCountdown } from "./Countdown";
-
-import { REGISTER_URL } from "../constants/site";
 import { HERO_AMBIENT_STORM } from "../constants/heroWeather";
 import { clamp01 } from "../utils/clamp";
 
