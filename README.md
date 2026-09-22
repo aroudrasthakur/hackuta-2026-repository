@@ -3,7 +3,7 @@
 The official marketing site for **HackUTA** — a 24-hour hackathon at the University of Texas at Arlington.
 
 **November 14–15, 2026** · UT Arlington, Texas  
-Open to college students 18+. All experience levels welcome.
+Open to college students 18+. All experience levels welcome. **Applications are open** at [register.hackuta.com](https://register.hackuta.com).
 
 | Environment | URL |
 | --- | --- |
@@ -16,7 +16,7 @@ Single-page marketing experience with anchored sections:
 
 | Section | Contents |
 | --- | --- |
-| **Hero** | Event headline, countdown, primary CTA |
+| **Hero** | Event headline, countdown, Apply CTA (links to registration) |
 | **About** | What HackUTA is and who it's for |
 | **Schedule** | Day I and Day II timeline |
 | **FAQ** | Common questions (registration, eligibility, logistics) |
