@@ -33,6 +33,22 @@ External links include Discord and the application form. The `/register` route r
 
 This site makes **no backend API calls**. The only cross-origin link is the registration URL configured via `VITE_REGISTER_URL`.
 
+## Documentation
+
+| Doc | Contents |
+| --- | --- |
+| **[docs/README.md](docs/README.md)** | Documentation index |
+| **[docs/API.md](docs/API.md)** | Routes, external links, env vars (no backend API) |
+| **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Codebase layout, build pipeline, routing |
+| **[docs/SECURITY.md](docs/SECURITY.md)** | CSP, headers, static-site threat model |
+| **[docs/OPERATIONS.md](docs/OPERATIONS.md)** | Deploy checklist, Vercel config, troubleshooting |
+| **[docs/TESTING.md](docs/TESTING.md)** | Unit/e2e tests, CI, design QA |
+| **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** | PR workflow and conventions |
+| [docs/palette.md](docs/palette.md) | Color tokens |
+| [docs/QA.md](docs/QA.md) | Browser verification harness |
+| [HACKUTA_DESIGN_CONTEXT.md](HACKUTA_DESIGN_CONTEXT.md) | Odyssey theme narrative and UX principles |
+| [.env.example](.env.example) | Environment variable template |
+
 ## Questions?
 
 - General: [hello@hackuta.org](mailto:hello@hackuta.org)
@@ -78,10 +94,8 @@ src/
   components/              Hero, Schedule, FAQ, Sponsors, art assets, etc.
   constants/site.ts        REGISTER_URL and site metadata
   hooks/                   Countdown and other UI hooks
-security/csp.ts            Production CSP (must match vercel.json)
-docs/
-  palette.md               Color tokens and design palette
-  QA.md                    Manual QA checklist
+security/                  CSP + response headers (sync with vercel.json)
+docs/                      API, architecture, security, operations, testing
 scripts/prepare-assets.mjs Image/font optimization (npm run assets)
 ```
 
@@ -118,22 +132,15 @@ GitHub Actions on pushes/PRs to `main`:
 
 See [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
-## Design docs
-
-| Doc | Contents |
-| --- | --- |
-| [HACKUTA_DESIGN_CONTEXT.md](HACKUTA_DESIGN_CONTEXT.md) | Odyssey theme narrative, page structure, UX principles |
-| [docs/palette.md](docs/palette.md) | Color tokens |
-| [docs/QA.md](docs/QA.md) | Manual QA checklist |
-
-Shared design context with the registration app — keep palette and tone aligned when making visual changes.
-
 ## Security notes
 
-- Production CSP lives in `security/csp.ts` and `vercel.json`. `tests/unit/utils.test.ts` asserts the directives stay identical — change both together.
-- `connect-src` is limited to `'self'` plus Vercel's preview toolbar; this site does not call external APIs.
-- Security headers (HSTS, frame options, etc.) are set in `vercel.json`.
+See **[docs/SECURITY.md](docs/SECURITY.md)** for the full model. Summary:
+
+- Strict CSP + Trusted Types — no user input surface on this site
+- `connect-src` limited to `'self'` — no runtime API calls
+- Apply links controlled by `VITE_REGISTER_URL` — protect Vercel env settings
+- Applicant auth, forms, and uploads live on the [registration app](https://github.com/aroudrasthakur/hackuta-2026-registration)
 
 ## Deployment
 
-Deployed to **Vercel** as a static SPA. All routes rewrite to `index.html`. Set `VITE_REGISTER_URL` in the Vercel environment before building so the Apply link targets the correct registration deployment.
+See **[docs/OPERATIONS.md](docs/OPERATIONS.md)**. Static SPA on **Vercel**; set `VITE_REGISTER_URL` before build so Apply links target the correct registration deployment.
