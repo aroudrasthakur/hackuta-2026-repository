@@ -348,9 +348,11 @@ export function Hero({ motionEnabled }: HeroProps) {
               </span>
             </h1>
 
-            <a className="od-hero-apply-btn" href={REGISTER_URL}>
-              Apply
-            </a>
+            <div className="od-hero-coming-soon">
+              <span className="od-hero-coming-soon-mark" aria-hidden="true" />
+
+              <span>Coming soon</span>
+            </div>
 
             <HeroCountdown />
           </div>
