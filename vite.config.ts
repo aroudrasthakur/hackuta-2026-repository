@@ -5,6 +5,7 @@ import { copyFileSync } from 'node:fs'
 import { beasties } from 'vite-plugin-beasties'
 import istanbul from 'vite-plugin-istanbul'
 import { contentSecurityPolicy } from './security/csp.ts'
+import { permissionsPolicy, referrerPolicy } from './security/headers.ts'
 import { inlineCriticalShell } from './scripts/inline-critical-shell.ts'
 import { asyncCssForCsp } from './scripts/async-css-for-csp.ts'
 
@@ -43,7 +44,11 @@ export default defineConfig({
   preview: {
     port: 4174,
     strictPort: true,
-    headers: { 'Content-Security-Policy': contentSecurityPolicy },
+    headers: {
+      'Content-Security-Policy': contentSecurityPolicy,
+      'Permissions-Policy': permissionsPolicy,
+      'Referrer-Policy': referrerPolicy,
+    },
   },
   build: { target: 'es2022' },
 })
