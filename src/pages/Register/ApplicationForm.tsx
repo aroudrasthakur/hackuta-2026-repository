@@ -20,6 +20,8 @@ const labelClass = "flex flex-col gap-1.5 text-sm";
 const legendClass = "text-(--color-sand)";
 const fieldsetClass = "flex flex-col gap-2 text-sm";
 const checkboxRowClass = "flex items-center gap-2 text-(--color-light)";
+const checkboxClass ="h-4 w-4 cursor-pointer accent-(--color-ocean) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-sand) disabled:cursor-not-allowed disabled:opacity-50";
+const radioClass ="h-4 w-4 cursor-pointer accent-(--color-ocean) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-sand) disabled:cursor-not-allowed disabled:opacity-50";
 const URL_PATTERN = /^https?:\/\/.+/i;
 const PHONE_PATTERN = /^[0-9+\-\s()]{7,}$/;
 
@@ -295,6 +297,7 @@ export function ApplicationForm({
             <label key={option} className={checkboxRowClass}>
               <input
                 type="checkbox"
+                className={checkboxClass}
                 checked={raceEthnicity.includes(option)}
                 onChange={() => setRaceEthnicity((prev) => toggleValue(prev, option))}
               />
@@ -311,6 +314,7 @@ export function ApplicationForm({
             <label key={option} className={checkboxRowClass}>
               <input
                 type="checkbox"
+                className={checkboxClass}
                 checked={dietaryRestrictions.includes(option)}
                 onChange={() => setDietaryRestrictions((prev) => toggleValue(prev, option))}
               />
@@ -340,6 +344,7 @@ export function ApplicationForm({
           <label className={checkboxRowClass}>
             <input
               type="radio"
+              className={radioClass}
               name="firstHackathon"
               checked={firstHackathon === "yes"}
               onChange={() => setFirstHackathon("yes")}
@@ -349,6 +354,7 @@ export function ApplicationForm({
           <label className={checkboxRowClass}>
             <input
               type="radio"
+              className={radioClass}
               name="firstHackathon"
               checked={firstHackathon === "no"}
               onChange={() => setFirstHackathon("no")}
@@ -410,6 +416,7 @@ export function ApplicationForm({
             <input
               id="codeOfConductAgreed"
               type="checkbox"
+              className={checkboxClass}
               checked={codeOfConductAgreed}
               onChange={(e) => setCodeOfConductAgreed(e.target.checked)}
             />
@@ -430,6 +437,7 @@ export function ApplicationForm({
             <input
               id="mlhDataSharingConsent"
               type="checkbox"
+              className={checkboxClass}
               checked={mlhDataSharingConsent}
               onChange={(e) => setMlhDataSharingConsent(e.target.checked)}
             />
@@ -440,6 +448,7 @@ export function ApplicationForm({
         <label className={checkboxRowClass}>
           <input
             type="checkbox"
+            className={checkboxClass}
             checked={mlhCommunicationsConsent}
             onChange={(e) => setMlhCommunicationsConsent(e.target.checked)}
           />
