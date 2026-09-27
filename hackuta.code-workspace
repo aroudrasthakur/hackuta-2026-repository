@@ -4,10 +4,7 @@
             "path": "."
         },
         {
-            "path": "../hackuta-2026-profile"
-        },
-        {
-            "path": "../hackuta-2026-registration"
+            "path": "../hackuta-2026-register"
         },
         {
             "path": "../hackuta-2026-admin"

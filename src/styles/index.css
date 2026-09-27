@@ -1017,34 +1017,45 @@
   line-height:1;
 }
 
-@utility od-hero-coming-soon {
+@utility od-hero-apply {
   display:inline-flex;
   align-items:center;
   gap:10px;
   margin-top:clamp(24px,3.2svh,36px);
   padding:14px 24px 13px;
-  border:1px solid color-mix(in srgb,var(--ink) 32%,transparent);
-  color:var(--ink);
+  border:1px solid var(--ocean);
+  background:var(--ocean);
+  color:var(--light);
   font-size:15px;
   font-weight:600;
   letter-spacing:.18em;
   line-height:1;
   text-transform:uppercase;
+  text-decoration:none;
+  transition:background .22s var(--ease-out),border-color .22s var(--ease-out);
+  &:hover {
+    background:var(--night);
+    border-color:var(--night);
+  }
+  &:focus-visible {
+    outline:2px solid var(--light);
+    outline-offset:3px;
+  }
 }
-@utility od-hero-coming-soon-mark {
+@utility od-hero-apply-mark {
   position:relative;
   width:6px;
   height:6px;
   border-radius:50%;
-  background:var(--ink);
+  background:var(--light);
   animation:hero-status-pulse 1.8s ease-in-out infinite;
   &::after {
     content:"";
     position:absolute;
     inset:-3px;
     border-radius:50%;
-    background:var(--ink);
-    opacity:.13;
+    background:var(--light);
+    opacity:.22;
     animation:hero-status-ring 1.8s ease-in-out infinite;
   }
 }
