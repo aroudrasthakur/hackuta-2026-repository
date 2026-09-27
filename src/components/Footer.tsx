@@ -233,7 +233,7 @@ export function Footer({ motionEnabled = true }: { motionEnabled?: boolean }) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Code of Conduct
+          MLH Code of Conduct
         </a>
       </div>
     </footer>
