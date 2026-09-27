@@ -50,8 +50,16 @@ const questions = [
       "We host an expo-style demo fair where judges visit each team. Expect a short pitch of three to four minutes and Q&A covering your problem, solution, and tech.",
   },
   {
-    question: "How do I contact organizers or request accomodations?",
-    answer: "Reach out to us at hello@hackuta.org!",
+    question: "How do I contact organizers or request accommodations?",
+    answer: (
+      <>
+        Reach out to us at{" "}
+        <a href="mailto:hello@hackuta.org" className="oracle-email-link">
+          hello@hackuta.org
+        </a>
+        !
+      </>
+    ),
   },
 ];
 
