@@ -139,7 +139,8 @@ export function FAQ({ motionEnabled }: { motionEnabled: boolean }) {
                   className="oracle-answer"
                   role="region"
                   aria-labelledby={questionId}
-                  aria-hidden={!isOpen}
+                  aria-hidden={!isOpen || undefined}
+                  inert={!isOpen || undefined}
                 >
                   <div className="oracle-answer-inner">
                     <p>{item.answer}</p>
