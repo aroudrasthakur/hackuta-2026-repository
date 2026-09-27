@@ -25,13 +25,19 @@ const questions = [
   },
   {
     question: "How do teams work?",
-    answer:
-      "Teams can have up to four hackers. You can list your teammates on the application or arrive solo. We host a team formation mixer and share a Discord channel to help you find collaborators before hacking starts.",
+    answer: (
+      <>
+        Teams can have up to four hackers. If you’re looking for teammates, we
+        host a team formation mixer, or you can create a post on our Discord’s{" "}
+        <strong>team-formation</strong> channel to help you find teammates
+        before the hacking begins.
+      </>
+    ),
   },
   {
     question: "What should I bring?",
     answer:
-      "Pack your laptop, chargers, and any hardware you plan to hack on. A valid student ID, government ID, toiletries, medications, and something comfy to nap with, like a hoodie, pillow, or sleeping bag and a deodorant, will make the 24 hours much easier.",
+      "A valid UTA student ID or government ID is required at check-in. Besides that, pack your laptop, chargers, and any hardware you plan to hack on. Toiletries, medications, and a comfortable item for napping, like a hoodie, pillow, or sleeping bag, along with deodorant, will make the 24-hour period much more enjoyable.",
   },
   {
     question: "Can I start on my project early?",
@@ -41,21 +47,22 @@ const questions = [
   {
     question: "How does judging and prizes work?",
     answer:
-      "We host an expo-style demo fair where judges visit each team. Expect a short pitch of three to four minutes and Q&A covering your problem, solution, and tech. Projects are evaluated on creativity, impact, technical execution, and presentation, with overall winners plus sponsor challenges announced at closing.",
+      "We host an expo-style demo fair where judges visit each team. Expect a short pitch of three to four minutes and Q&A covering your problem, solution, and tech.",
   },
   {
     question: "How do I contact organizers or request accomodations?",
-    answer: "Join the HackUTA Discord from the About section!",
+    answer: "Reach out to us at hello@hackuta.org!",
   },
 ];
 
 function FAQContact({ className }: { className: string }) {
   return (
     <p className={`oracle-description ${className}`}>
-      Still have some questions? You can always email us at{" "}
+      Still have some questions? You can always email us at {""}
       <a href="mailto:hello@hackuta.org" className="oracle-email-link">
         hello@hackuta.org
-      </a>
+      </a>{" "}
+      or ask us on our Discord!
     </p>
   );
 }
