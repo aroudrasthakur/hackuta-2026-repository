@@ -55,7 +55,7 @@ export function About() {
         <div className="odyssey-call-actions">
           <OdysseyButton href={DISCORD_URL}>Join Discord</OdysseyButton>
           <OdysseyButton inactive>Devpost (Coming Soon)</OdysseyButton>
-          <OdysseyButton href={JUDGE_MENTOR_FORM_URL}>Judge/Mentor Sign Up</OdysseyButton>
+          <OdysseyButton href={JUDGE_MENTOR_FORM_URL}>Judge Sign Up</OdysseyButton>
           <OdysseyButton href={VOLUNTEER_FORM_URL}>Volunteer Signup</OdysseyButton>
         </div>
 
