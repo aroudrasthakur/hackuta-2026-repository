@@ -5,6 +5,8 @@ import { OdysseyButton } from "./OdysseyButton";
 const DISCORD_URL = "https://discord.gg/2bVsYS3SgS";
 const VOLUNTEER_FORM_URL =
   "https://docs.google.com/forms/d/e/1FAIpQLSewKDoB5BEuVbOPyZ-dn7fHdl5awU_ykqKcSofHEK4g9pjYfg/viewform";
+const JUDGE_MENTOR_FORM_URL =
+  "https://docs.google.com/forms/d/e/1FAIpQLScdzf70HGxls9-96GZC79qH4GkbO9diguNmoLi3nWGGrhOWOQ/viewform";
 
 const perks = [
   { label: "24 Hours of Building", tone: "terracotta" as const },
@@ -53,7 +55,7 @@ export function About() {
         <div className="odyssey-call-actions">
           <OdysseyButton href={DISCORD_URL}>Join Discord</OdysseyButton>
           <OdysseyButton inactive>Devpost (Coming Soon)</OdysseyButton>
-          <OdysseyButton inactive>Judge/Mentor Sign Up</OdysseyButton>
+          <OdysseyButton href={JUDGE_MENTOR_FORM_URL}>Judge/Mentor Sign Up</OdysseyButton>
           <OdysseyButton href={VOLUNTEER_FORM_URL}>Volunteer Signup</OdysseyButton>
         </div>
 

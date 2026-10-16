@@ -12,7 +12,10 @@ test('event content and navigation are honest and complete', async ({ page }) =>
   await expect(page.locator('.odyssey-call-perks > li')).toHaveCount(3)
   await expect(page.getByRole('link', { name: 'Join Discord', exact: true })).toHaveAttribute('href', /discord\.gg/)
   await expect(page.getByRole('button', { name: 'Devpost (Coming Soon)', exact: true })).toBeDisabled()
-  await expect(page.getByRole('button', { name: 'Judge/Mentor Sign Up', exact: true })).toBeDisabled()
+  await expect(page.getByRole('link', { name: 'Judge/Mentor Sign Up', exact: true })).toHaveAttribute(
+    'href',
+    /docs\.google\.com\/forms/,
+  )
   await expect(page.getByRole('link', { name: 'Volunteer Signup', exact: true })).toHaveAttribute(
     'href',
     /docs\.google\.com\/forms/,
