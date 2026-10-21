@@ -8,6 +8,20 @@
         },
         {
             "path": "../hackuta-2026-admin"
+        },
+        {
+            "path": "../hackuta-2026-profile"
         }
-    ]
+    ],
+    "settings": {
+        "explorer.excludeGitIgnore": false,
+        "git.autoRepositoryDetection": true,
+        "git.detectSubmodules": false,
+        "git.scanRepositories": [
+            ".",
+            "../hackuta-2026-register",
+            "../hackuta-2026-admin",
+            "../hackuta-2026-profile"
+        ]
+    }
 }
