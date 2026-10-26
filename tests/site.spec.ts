@@ -12,6 +12,14 @@ test('event content and navigation are honest and complete', async ({ page }) =>
   await expect(page.locator('.odyssey-call-perks > li')).toHaveCount(3)
   await expect(page.getByRole('link', { name: 'Join Discord', exact: true })).toHaveAttribute('href', /discord\.gg/)
   await expect(page.getByRole('button', { name: 'Devpost (Coming Soon)', exact: true })).toBeDisabled()
+  await expect(page.getByRole('link', { name: 'Judge Sign Up', exact: true })).toHaveAttribute(
+    'href',
+    /docs\.google\.com\/forms/,
+  )
+  await expect(page.getByRole('link', { name: 'Volunteer Signup', exact: true })).toHaveAttribute(
+    'href',
+    /docs\.google\.com\/forms/,
+  )
   await expect(page.locator('#footer').getByRole('link', { name: 'Instagram' })).toHaveAttribute('href', /instagram\.com\/hackuta/)
   await expect(page.locator('#footer').getByRole('link', { name: 'Code of Conduct' })).toHaveAttribute('href', /mlh\.io\/code-of-conduct/)
   await expect(page.getByText('Your odyssey begins here', { exact: false })).toHaveCount(0)

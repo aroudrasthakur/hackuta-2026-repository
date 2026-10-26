@@ -108,6 +108,12 @@ describe("About", () => {
       screen.getByRole("heading", { name: "Are you ready to begin your odyssey?" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Join Discord" }).getAttribute("href")).toContain("discord.gg");
+    expect(screen.getByRole("link", { name: "Judge Sign Up" }).getAttribute("href")).toContain(
+      "docs.google.com/forms",
+    );
+    expect(screen.getByRole("link", { name: "Volunteer Signup" }).getAttribute("href")).toContain(
+      "docs.google.com/forms",
+    );
   });
 });
 
