@@ -1,11 +1,10 @@
-type SponsorTier = "platinum" | "gold" | "silver" | "bronze";
+type SponsorGroup = "direct" | "in-kind";
 
 export type Sponsor = {
   /** Used for the logo alt text and as the React key. */
   name: string;
-  /** Path or URL to the sponsor logo. */
   image: string;
-  tier: SponsorTier;
+  group: SponsorGroup;
   link: string;
 };
 
@@ -15,20 +14,42 @@ export const SPONSOR_MAILTO = `mailto:${SPONSOR_EMAIL}?subject=${encodeURICompon
   "HackUTA 2026 sponsorship",
 )}`;
 
-/** Highest tier first: the roster renders tiers in this order. */
-export const SPONSOR_TIERS: Array<{
-  tier: SponsorTier;
-  label: string;
-  numeral: string;
-}> = [
-  { tier: "platinum", label: "Platinum", numeral: "I" },
-  { tier: "gold", label: "Gold", numeral: "II" },
-  { tier: "silver", label: "Silver", numeral: "III" },
-  { tier: "bronze", label: "Bronze", numeral: "IV" },
+/** Direct sponsors appear together, followed by in-kind sponsors. */
+export const SPONSOR_GROUPS: Array<{ group: SponsorGroup; label: string }> = [
+  { group: "direct", label: "Direct sponsors" },
+  { group: "in-kind", label: "In-kind sponsors" },
 ];
 
-/**
- * Add confirmed sponsors here. While this list is empty the section shows
- * "Sponsors announced soon" instead of the roster.
- */
-export const sponsors: Sponsor[] = [];
+/** Only approved sponsors and logos belong here. Xome is awaiting approval. */
+export const sponsors: Sponsor[] = [
+  {
+    name: "FaZe Clan",
+    image: "/images/sponsors/faze-clan.webp",
+    group: "direct",
+    link: "https://fazeclan.com/",
+  },
+  {
+    name: "CIQ",
+    image: "/images/sponsors/ciq.svg",
+    group: "direct",
+    link: "https://ciq.com/",
+  },
+  {
+    name: "Mouser Electronics",
+    image: "/images/sponsors/mouser.webp",
+    group: "direct",
+    link: "https://www.mouser.com/",
+  },
+  {
+    name: "UTA Department of Computer Science and Engineering",
+    image: "/images/sponsors/uta-cse.png",
+    group: "direct",
+    link: "https://www.uta.edu/academics/schools-colleges/engineering/academics/departments/cse",
+  },
+  {
+    name: "Pure Buttons",
+    image: "/images/sponsors/pure-buttons.webp",
+    group: "in-kind",
+    link: "https://www.purebuttons.com/",
+  },
+];
