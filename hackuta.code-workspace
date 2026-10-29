@@ -11,6 +11,9 @@
         },
         {
             "path": "../hackuta-2026-profile"
+        },
+        {
+            "path": "../hackuta-2026-wallet-service"
         }
     ],
     "settings": {
