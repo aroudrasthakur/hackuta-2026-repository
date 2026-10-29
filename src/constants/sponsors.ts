@@ -52,4 +52,10 @@ export const sponsors: Sponsor[] = [
     group: "in-kind",
     link: "https://www.purebuttons.com/",
   },
+  {
+    name: "Lovable",
+    image: "/images/sponsors/lovable.svg",
+    group: "in-kind",
+    link: "https://lovable.dev/",
+  },
 ];

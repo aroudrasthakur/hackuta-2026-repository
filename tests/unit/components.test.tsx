@@ -152,8 +152,9 @@ describe("Sponsors", () => {
   it("renders approved sponsors in direct and in-kind groups", () => {
     render(<Sponsors />);
     expect(screen.getByRole("region", { name: "Direct sponsors" }).querySelectorAll(".sponsor-badge")).toHaveLength(4);
-    expect(screen.getByRole("region", { name: "In-kind sponsors" }).querySelectorAll(".sponsor-badge")).toHaveLength(1);
+    expect(screen.getByRole("region", { name: "In-kind sponsors" }).querySelectorAll(".sponsor-badge")).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Pure Buttons" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Lovable" })).toHaveAttribute("href", "https://lovable.dev/");
     expect(screen.queryByRole("img", { name: /Xome/i })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Become a sponsor" }).getAttribute("href")).toContain(
       "mailto:sponsor@hackuta.org",
