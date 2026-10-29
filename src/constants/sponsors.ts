@@ -16,8 +16,8 @@ export const SPONSOR_MAILTO = `mailto:${SPONSOR_EMAIL}?subject=${encodeURICompon
 
 /** Direct sponsors appear together, followed by in-kind sponsors. */
 export const SPONSOR_GROUPS: Array<{ group: SponsorGroup; label: string }> = [
-  { group: "direct", label: "Direct sponsors" },
-  { group: "in-kind", label: "In-kind sponsors" },
+  { group: "direct", label: "Sponsors" },
+  { group: "in-kind", label: "Also thanking" },
 ];
 
 /** Only approved sponsors and logos belong here. Xome is awaiting approval. */
