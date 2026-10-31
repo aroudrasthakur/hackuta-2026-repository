@@ -47,6 +47,12 @@ export const sponsors: Sponsor[] = [
     link: "https://www.uta.edu/academics/schools-colleges/engineering/academics/departments/cse",
   },
   {
+    name: "UTA OSHA Education Center",
+    image: "/images/sponsors/uta-osha.webp",
+    group: "direct",
+    link: "https://www.uta.edu/ded/osha",
+  },
+  {
     name: "Pure Buttons",
     image: "/images/sponsors/pure-buttons.webp",
     group: "in-kind",

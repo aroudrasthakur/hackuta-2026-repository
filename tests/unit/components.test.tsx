@@ -151,8 +151,9 @@ describe("FAQ", () => {
 describe("Sponsors", () => {
   it("renders approved sponsors in direct and in-kind groups", () => {
     render(<Sponsors />);
-    expect(screen.getByRole("region", { name: "Sponsors" }).querySelectorAll(".sponsor-badge")).toHaveLength(4);
+    expect(screen.getByRole("region", { name: "Sponsors" }).querySelectorAll(".sponsor-badge")).toHaveLength(5);
     expect(screen.getByRole("region", { name: "Also thanking" }).querySelectorAll(".sponsor-badge")).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "UTA OSHA Education Center" })).toHaveAttribute("href", "https://www.uta.edu/ded/osha");
     expect(screen.getByRole("link", { name: "Pure Buttons" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Lovable" })).toHaveAttribute("href", "https://lovable.dev/");
     expect(screen.queryByRole("img", { name: /Xome/i })).not.toBeInTheDocument();
