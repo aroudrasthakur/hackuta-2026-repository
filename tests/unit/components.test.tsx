@@ -149,9 +149,14 @@ describe("FAQ", () => {
 });
 
 describe("Sponsors", () => {
-  it("renders the empty roster state", () => {
+  it("renders approved sponsors in direct and in-kind groups", () => {
     render(<Sponsors />);
-    expect(screen.getByText("Sponsors announced soon")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Sponsors" }).querySelectorAll(".sponsor-badge")).toHaveLength(5);
+    expect(screen.getByRole("region", { name: "Also thanking" }).querySelectorAll(".sponsor-badge")).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "UTA OSHA Education Center" })).toHaveAttribute("href", "https://www.uta.edu/ded/osha");
+    expect(screen.getByRole("link", { name: "Pure Buttons" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Lovable" })).toHaveAttribute("href", "https://lovable.dev/");
+    expect(screen.queryByRole("img", { name: /Xome/i })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Become a sponsor" }).getAttribute("href")).toContain(
       "mailto:sponsor@hackuta.org",
     );
