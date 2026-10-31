@@ -4,15 +4,15 @@ import { OdysseyButton } from "./OdysseyButton";
 import {
   SPONSOR_EMAIL,
   SPONSOR_MAILTO,
-  SPONSOR_TIERS,
+  SPONSOR_GROUPS,
   sponsors,
   type Sponsor,
 } from "../constants/sponsors";
 
-/** Tiers that actually have sponsors, highest first. */
-const roster = SPONSOR_TIERS.map((meta) => ({
+/** Hide groups until they have confirmed sponsors. */
+const roster = SPONSOR_GROUPS.map((meta) => ({
   ...meta,
-  items: sponsors.filter((sponsor) => sponsor.tier === meta.tier),
+  items: sponsors.filter((sponsor) => sponsor.group === meta.group),
 })).filter((group) => group.items.length > 0);
 
 function SponsorBadge({ sponsor }: { sponsor: Sponsor }) {
@@ -37,24 +37,20 @@ function SponsorBadge({ sponsor }: { sponsor: Sponsor }) {
 function SponsorRoster() {
   return (
     <div className="sponsor-roster">
-      {roster.map(({ tier, label, numeral, items }) => (
-        <section className={`sponsor-tier sponsor-tier--${tier}`} key={tier}>
-          <div className="sponsor-tier-heading">
-            <span className="sponsor-tier-line" aria-hidden="true" />
-            <h3>
-              <span className="sponsor-tier-numeral" aria-hidden="true">
-                {numeral}
-              </span>
-              <span>{label}</span>
-            </h3>
-            <span className="sponsor-tier-line" aria-hidden="true" />
+      {roster.map(({ group, label, items }) => (
+        <section
+          className={`sponsor-group sponsor-group--${group}`}
+          key={group}
+          aria-labelledby={`sponsor-group-${group}`}
+        >
+          <div className="sponsor-group-heading">
+            <span className="sponsor-group-line" aria-hidden="true" />
+            <h3 id={`sponsor-group-${group}`}>{label}</h3>
+            <span className="sponsor-group-line" aria-hidden="true" />
           </div>
           <ul className="sponsor-badges">
             {items.map((sponsor) => (
-              <li
-                className={`sponsor-slot sponsor-slot--${tier}`}
-                key={sponsor.name}
-              >
+              <li className="sponsor-slot" key={sponsor.name}>
                 <SponsorBadge sponsor={sponsor} />
               </li>
             ))}
@@ -92,7 +88,7 @@ function SponsorTemple({ empty }: { empty: boolean }) {
 
       <p className="sponsors-temple-frieze">
         <span aria-hidden="true" />
-        {empty ? "Our honorable sponsors" : "Our honorable sponsors"}
+        Our honorable sponsors
         <span aria-hidden="true" />
       </p>
 

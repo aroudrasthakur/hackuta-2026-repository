@@ -15,7 +15,7 @@ vi.mock("../../src/constants/sponsors", async (importOriginal) => {
       {
         name: "Acme Labs",
         image: "/images/acme.webp",
-        tier: "gold" as const,
+        group: "direct" as const,
         link: "https://example.com/acme",
       },
     ],
@@ -29,7 +29,7 @@ describe("Sponsors roster", () => {
       "href",
       "https://example.com/acme",
     );
-    expect(document.querySelector(".sponsor-tier--gold")).toBeTruthy();
+    expect(document.querySelector(".sponsor-group--direct")).toBeTruthy();
   });
 });
 

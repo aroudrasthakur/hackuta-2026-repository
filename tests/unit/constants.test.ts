@@ -9,7 +9,7 @@ import {
 } from "../../src/constants/images";
 import { PRIMARY_NAV_LINKS } from "../../src/constants/navigation";
 import { REGISTER_URL } from "../../src/constants/site";
-import { SPONSOR_TIERS } from "../../src/constants/sponsors";
+import { SPONSOR_GROUPS } from "../../src/constants/sponsors";
 
 describe("image helpers", () => {
   it("builds logo and coast src sets", () => {
@@ -24,7 +24,7 @@ describe("image helpers", () => {
 describe("site constants", () => {
   it("exports navigation and sponsor data", () => {
     expect(PRIMARY_NAV_LINKS.length).toBeGreaterThan(0);
-    expect(SPONSOR_TIERS.length).toBeGreaterThan(0);
+    expect(SPONSOR_GROUPS.length).toBeGreaterThan(0);
     expect(HERO_AMBIENT_STORM).toBeGreaterThan(0);
   });
 
