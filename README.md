@@ -31,7 +31,7 @@ External links include Discord and the application form. The `/register` route r
 | **hackuta-2026-repository** (this repo) | Marketing landing page | [hackuta.com](https://hackuta.com) |
 | [hackuta-2026-registration](https://github.com/aroudrasthakur/hackuta-2026-registration) | Sign-in, application form, profile, contact | [register.hackuta.com](https://register.hackuta.com) |
 
-This site makes **no backend API calls**. The only cross-origin link is the registration URL configured via `VITE_REGISTER_URL`.
+The schedule section reads the public Convex `schedule` table. Everything else is static. The Apply CTA uses `VITE_REGISTER_URL`.
 
 ## Documentation
 
@@ -75,6 +75,7 @@ VITE_REGISTER_URL=http://127.0.0.1:5273
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `VITE_REGISTER_URL` | Registration site the Apply CTA links to | `https://register.hackuta.com` |
+| `VITE_CONVEX_URL` | Convex deployment for the live schedule | empty (placeholder days) |
 
 Set per environment in Vercel project settings. Preview deploys can point at a staging registration URL if needed.
 
@@ -83,7 +84,7 @@ Set per environment in Vercel project settings. Preview deploys can point at a s
 - Vite, React 19, TypeScript, Tailwind CSS v4
 - [@paper-design/shaders-react](https://github.com/paper-design/shaders) and custom SVG art for the Odyssey theme
 - Vitest (unit), Playwright + axe (e2e, responsive, accessibility)
-- No backend — static SPA deployed to Vercel
+- Static SPA on Vercel; schedule is a read-only Convex query
 
 ## Project layout
 

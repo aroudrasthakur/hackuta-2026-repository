@@ -2,7 +2,7 @@
 
 | Doc | Audience | Contents |
 | --- | --- | --- |
-| [API.md](API.md) | Developers | Routes, external links, env vars (no backend API) |
+| [API.md](API.md) | Developers | Routes, external links, env vars, public schedule query |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Developers | Repo layout, rendering, build pipeline |
 | [SECURITY.md](SECURITY.md) | Developers, operators | CSP, headers, static-site threat model |
 | [OPERATIONS.md](OPERATIONS.md) | Operators | Deploy checklist, Vercel config, troubleshooting |

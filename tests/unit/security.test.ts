@@ -17,6 +17,7 @@ describe("contentSecurityPolicy", () => {
     expect(contentSecurityPolicy).toContain("object-src 'none'");
     expect(contentSecurityPolicy).toContain("require-trusted-types-for 'script'");
     expect(contentSecurityPolicy).toContain("frame-ancestors 'none'");
+    expect(contentSecurityPolicy).toMatch(/connect-src[^;]*convex\.cloud/);
   });
 });
 

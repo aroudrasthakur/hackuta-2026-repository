@@ -13,7 +13,7 @@ Security model for the static marketing site.
 | Open redirect | Low | `REGISTER_URL` is build-time env — protect Vercel settings |
 | MITM | Medium | HSTS with preload |
 
-There is **no server-side attack surface** on this repo — no mutations, uploads, auth, or database.
+There is **no mutation or auth surface** on this repo. The schedule section is a public read-only Convex query.
 
 ## Content Security Policy
 
@@ -25,7 +25,7 @@ Source: `security/csp.ts` · Deployed: `vercel.json` · Test: `tests/unit/securi
 | `script-src` | `'self'` + Vercel preview toolbar | No inline scripts |
 | `script-src-attr` | `'none'` | Blocks inline event handlers |
 | `style-src` | `'self'` + `'unsafe-inline'` | Tailwind/runtime styles |
-| `connect-src` | `'self'` + Vercel live | **No external API calls** |
+| `connect-src` | `'self'` + Vercel live + `*.convex.cloud` | Public schedule WebSocket |
 | `object-src` | `'none'` | No plugins |
 | `frame-ancestors` | `'none'` | Anti-clickjacking |
 | `form-action` | `'self'` | No HTML forms submit off-site |

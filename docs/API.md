@@ -1,6 +1,6 @@
 # HackUTA 2026 Marketing Site — Site Reference
 
-This repo is a **static SPA** with no backend API. This document describes routes, external integrations, and build-time configuration.
+This repo is a **static SPA**. This document describes routes, external integrations, and build-time configuration. The only backend read is the public Convex schedule query.
 
 **See also:** [ARCHITECTURE.md](ARCHITECTURE.md) · [SECURITY.md](SECURITY.md)
 
@@ -33,10 +33,11 @@ Header navigation scrolls to these anchors.
 
 ## External integrations
 
-No `fetch()` to third-party APIs at runtime. `connect-src` CSP is `'self'` only (+ Vercel preview tooling).
+No `fetch()` to third-party APIs at runtime. `connect-src` allows Convex WebSockets for the public schedule query, plus Vercel preview tooling.
 
 | Integration | Type | Source | URL / target |
 | --- | --- | --- | --- |
+| **Public schedule** | Convex query | `VITE_CONVEX_URL` | `profile/schedule:listPublicSchedule` |
 | **Registration app** | Redirect / link | `VITE_REGISTER_URL` | `https://register.hackuta.com` (prod) |
 | **Discord** | External link | `About.tsx` | `https://discord.gg/2bVsYS3SgS` |
 | **General contact** | mailto | `FAQ.tsx` | `hello@hackuta.org` |
@@ -68,6 +69,7 @@ import.meta.env.VITE_REGISTER_URL?.trim() || "https://register.hackuta.com"
 | Variable | Required | Purpose | Default |
 | --- | --- | --- | --- |
 | `VITE_REGISTER_URL` | No (prod: yes in Vercel) | Apply button and `/register` redirect | `https://register.hackuta.com` |
+| `VITE_CONVEX_URL` | No (prod: yes in Vercel) | Convex deployment for the live schedule | empty → placeholder days |
 
 Set in Vercel project settings or `.env.local` for local dev.
 
@@ -115,7 +117,7 @@ All security-sensitive applicant flows are on the registration deployment.
 | FAQ contact | `<a href="mailto:hello@hackuta.org">` |
 | Sponsor inquiry | `SPONSOR_MAILTO` in `sponsors.ts` |
 | Countdown | Client-side date math (no API) |
-| Schedule content | Static React components |
+| Schedule content | `profile/schedule:listPublicSchedule` (active `schedule` rows) |
 
 ---
 
