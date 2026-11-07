@@ -53,6 +53,12 @@ export const sponsors: Sponsor[] = [
     link: "https://www.uta.edu/ded/osha",
   },
   {
+    name: "Chert",
+    image: "/images/sponsors/chert.png",
+    group: "direct",
+    link: "https://www.trychert.com/",
+  },
+  {
     name: "Pure Buttons",
     image: "/images/sponsors/pure-buttons.webp",
     group: "in-kind",
