@@ -28,14 +28,19 @@ test('event content and navigation are honest and complete', async ({ page }) =>
   await expect(sponsors).toHaveAttribute('data-roster', 'filled')
   await expect(sponsors.getByRole('heading', { name: 'Sponsors of HackUTA 26' })).toBeAttached()
   await expect(sponsors.getByText('Our honorable sponsors', { exact: true })).toBeAttached()
-  await expect(sponsors.getByRole('region', { name: 'Sponsors' }).getByRole('link')).toHaveCount(6)
+  await expect(sponsors.getByRole('region', { name: 'Sponsors' }).getByRole('link')).toHaveCount(7)
   await expect(sponsors.getByRole('region', { name: 'Sponsors' }).getByRole('link', { name: 'Chert' })).toHaveAttribute('href', 'https://www.trychert.com/')
+  await expect(sponsors.getByRole('region', { name: 'Sponsors' }).getByRole('link', { name: 'Xome' })).toHaveAttribute('href', 'https://www.xome.com/who-we-are')
   await expect(sponsors.getByRole('region', { name: 'Also thanking' }).getByRole('link', { name: 'Pure Buttons' })).toBeAttached()
   await expect(sponsors.getByRole('region', { name: 'Also thanking' }).getByRole('link', { name: 'Lovable' })).toHaveAttribute('href', 'https://lovable.dev/')
-  await expect(sponsors.getByRole('img', { name: /Xome/i })).toHaveCount(0)
+  await expect(sponsors.getByRole('region', { name: 'Also thanking' }).getByRole('link', { name: 'Saxbys' })).toHaveAttribute(
+    'href',
+    'https://www.saxbyscoffee.com/location/university-of-texas-at-arlington/',
+  )
+  await expect(sponsors.getByRole('region', { name: 'Also thanking' }).getByRole('link', { name: 'Eleven Labs' })).toHaveAttribute('href', 'https://elevenlabs.io/')
   await expect(sponsors.getByRole('link', { name: 'Become a Sponsor' })).toHaveAttribute('href', /^mailto:sponsor@hackuta\.org/)
   await expect(sponsors.locator('.sponsor-group')).toHaveCount(2)
-  await expect(sponsors.locator('.sponsor-badge')).toHaveCount(8)
+  await expect(sponsors.locator('.sponsor-badge')).toHaveCount(11)
   const beginnerQuestion = page.getByText("What if I've never been to a hackathon?", { exact: true })
   await beginnerQuestion.click()
   await expect(page.getByText(/No experience required\. We run onboarding sessions/)).toBeVisible()
