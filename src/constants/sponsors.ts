@@ -20,7 +20,7 @@ export const SPONSOR_GROUPS: Array<{ group: SponsorGroup; label: string }> = [
   { group: "in-kind", label: "Also thanking" },
 ];
 
-/** Only approved sponsors and logos belong here. Xome is awaiting approval. */
+/** Only approved sponsors and logos belong here. */
 export const sponsors: Sponsor[] = [
   {
     name: "FaZe Clan",
@@ -59,6 +59,12 @@ export const sponsors: Sponsor[] = [
     link: "https://www.trychert.com/",
   },
   {
+    name: "Xome",
+    image: "/images/sponsors/xome.png",
+    group: "direct",
+    link: "https://www.xome.com/who-we-are",
+  },
+  {
     name: "Pure Buttons",
     image: "/images/sponsors/pure-buttons.webp",
     group: "in-kind",
@@ -70,4 +76,16 @@ export const sponsors: Sponsor[] = [
     group: "in-kind",
     link: "https://lovable.dev/",
   },
+  {
+    name: "Saxbys",
+    image: "/images/sponsors/saxbys.png",
+    group: "in-kind",
+    link: "https://www.saxbyscoffee.com/location/university-of-texas-at-arlington/",
+  },
+  {
+    name: "Eleven Labs",
+    image: "/images/sponsors/elevenlabs.svg",
+    group: "in-kind",
+    link: "https://elevenlabs.io/",
+  }
 ];
