@@ -16,7 +16,7 @@ Registration app (separate): [register.hackuta.com](https://register.hackuta.com
 
 1. **Quality gate:** `npm run lint && npm run typecheck && npm run test:unit:coverage && npm run build`
 2. **Merge to `main`** — CI runs lint, types, unit tests, build, Playwright e2e
-3. **Verify Vercel production env:** `VITE_REGISTER_URL=https://register.hackuta.com`
+3. **Verify Vercel production env:** `VITE_REGISTER_URL=https://register.hackuta.com` and `VITE_CONVEX_URL` for the production Convex deployment
 4. **Smoke test production:**
    - Home page loads; hero art renders
    - Apply button → `register.hackuta.com`
@@ -38,6 +38,7 @@ Registration app (separate): [register.hackuta.com](https://register.hackuta.com
 | Variable | Production | Preview (optional) |
 | --- | --- | --- |
 | `VITE_REGISTER_URL` | `https://register.hackuta.com` | Staging registration URL |
+| `VITE_CONVEX_URL` | Production Convex `.convex.cloud` URL | Shared dev `https://standing-manatee-425.convex.cloud` |
 
 Set in Vercel → Project → Settings → Environment Variables. Rebuild required after changes.
 
@@ -68,6 +69,7 @@ Commit updated files under `public/` as needed.
 | Symptom | Check |
 | --- | --- |
 | Apply link wrong domain | `VITE_REGISTER_URL` in Vercel production env |
+| Schedule stays on “coming soon” | `VITE_CONVEX_URL` in the Vercel build env; Convex `schedule` rows with `active: true` |
 | `/register` 404 | `vercel.json` rewrite for `/register` → `index.html` |
 | CSP blocks script/style | `security/csp.ts` vs built asset paths |
 | Hero art missing | Run `npm run assets`; verify `public/images/` |

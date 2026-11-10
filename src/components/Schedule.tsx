@@ -1,81 +1,40 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import { OliveBranch } from "./art/OliveBranch";
 import { ThemeArt } from "./art/ThemeArt";
+import { getConvexClient } from "../convex/client";
+import type { PublicSchedule } from "../convex/api";
+import { FALLBACK_PUBLIC_SCHEDULE, usePublicSchedule } from "../hooks/usePublicSchedule";
+import {
+  formatEventWindowLabel,
+  formatScheduleDate,
+  formatScheduleTime,
+  groupScheduleEntriesByDay,
+  scheduleDateKey,
+  scheduleDayChapter,
+  scheduleDayNumeral,
+} from "../lib/schedule";
 
-type ScheduleEvent = {
-  at: string;
-  title: string;
-};
-
-type ScheduleDay = {
-  numeral: string;
-  chapter: string;
-  weekday: string;
-  date: string;
-  isoDate: string;
-  events: ScheduleEvent[];
-};
-
-const eventDays: ScheduleDay[] = [
-  {
-    numeral: "I",
-    chapter: "Day One",
-    weekday: "Saturday",
-    date: "November 14",
-    isoDate: "2026-11-14",
-    events: [
-      // { at: "00:00", title: "Event name" },
-    ],
-  },
-  {
-    numeral: "II",
-    chapter: "Day Two",
-    weekday: "Sunday",
-    date: "November 15",
-    isoDate: "2026-11-15",
-    events: [
-      // { at: "00:00", title: "Event name" },
-    ],
-  },
-];
-
-const dayAnchors = eventDays.map((day) =>
-  Date.parse(`${day.isoDate}T12:00:00`),
-);
-
-function nearestDayIndex(now: number) {
-  return dayAnchors.reduce((nearest, anchor, index) => {
-    const nearestAnchor = dayAnchors[nearest];
-    return nearestAnchor === undefined ||
-      Math.abs(anchor - now) < Math.abs(nearestAnchor - now)
-      ? index
-      : nearest;
+function nearestDayIndex(days: Array<{ date: string }>) {
+  const today = scheduleDateKey(Date.now());
+  const todayAtNoon = Date.parse(`${today}T12:00:00Z`);
+  return days.reduce((nearest, day, index) => {
+    const nearestDay = days[nearest];
+    if (!nearestDay) return index;
+    const dayDistance = Math.abs(Date.parse(`${day.date}T12:00:00Z`) - todayAtNoon);
+    const nearestDistance = Math.abs(Date.parse(`${nearestDay.date}T12:00:00Z`) - todayAtNoon);
+    return dayDistance < nearestDistance ? index : nearest;
   }, 0);
 }
 
-function formatTime(at: string) {
-  const separator = at.indexOf(":");
-  if (separator === -1) throw new Error(`Invalid schedule time: ${at}`);
-
-  const hours = Number(at.slice(0, separator));
-  const minutes = Number(at.slice(separator + 1));
-  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) {
-    throw new Error(`Invalid schedule time: ${at}`);
-  }
-
-  const period = hours < 12 ? "AM" : "PM";
-  return `${hours % 12 === 0 ? 12 : hours % 12}:${String(minutes).padStart(2, "0")} ${period}`;
-}
-
 function ScheduleTabButton({
-  day,
+  date,
   index,
   isSelected,
   tabRef,
   onSelect,
   onKeyDown,
 }: {
-  day: ScheduleDay;
+  date: string;
   index: number;
   isSelected: boolean;
   tabRef: (node: HTMLButtonElement | null) => void;
@@ -96,36 +55,46 @@ function ScheduleTabButton({
       onKeyDown={onKeyDown}
     >
       <span className="weekend-tab-numeral" aria-hidden="true">
-        {day.numeral}
+        {scheduleDayNumeral(index + 1)}
       </span>
       <span className="weekend-tab-label">
-        Day {day.numeral}
-        <span className="weekend-tab-date">
-          {`${day.weekday}, ${day.date}`}
-        </span>
+        Day {scheduleDayNumeral(index + 1)}
+        <span className="weekend-tab-date">{formatScheduleDate(date)}</span>
       </span>
     </button>
   );
 }
 
-export function Schedule() {
-  const [selected, setSelected] = useState(() => nearestDayIndex(Date.now()));
+function ScheduleView({ data, loading }: { data: PublicSchedule; loading: boolean }) {
+  const days = groupScheduleEntriesByDay(data.entries, data.eventStartsAt, data.eventEndsAt);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectedIndex = Math.max(
+    0,
+    days.findIndex((day) => day.date === selectedDate),
+  );
+  const activeIndex = days.some((day) => day.date === selectedDate)
+    ? selectedIndex
+    : days.length > 0
+      ? nearestDayIndex(days)
+      : -1;
 
   const moveFocus = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const last = eventDays.length - 1;
+    if (days.length === 0) return;
     const next = {
-      ArrowRight: selected === last ? 0 : selected + 1,
-      ArrowDown: selected === last ? 0 : selected + 1,
-      ArrowLeft: selected === 0 ? last : selected - 1,
-      ArrowUp: selected === 0 ? last : selected - 1,
+      ArrowRight: activeIndex === days.length - 1 ? 0 : activeIndex + 1,
+      ArrowDown: activeIndex === days.length - 1 ? 0 : activeIndex + 1,
+      ArrowLeft: activeIndex === 0 ? days.length - 1 : activeIndex - 1,
+      ArrowUp: activeIndex === 0 ? days.length - 1 : activeIndex - 1,
       Home: 0,
-      End: last,
+      End: days.length - 1,
     }[event.key];
 
     if (next === undefined) return;
     event.preventDefault();
-    setSelected(next);
+    const day = days[next];
+    if (!day) return;
+    setSelectedDate(day.date);
     tabs.current[next]?.focus();
   };
 
@@ -143,57 +112,68 @@ export function Schedule() {
           <h2 id="weekend-title" className="font-semibold uppercase">
             Schedule
           </h2>
-          <p className="weekend-when">November 14–15, 2026 · UT Arlington</p>
+          <p className="weekend-when">{formatEventWindowLabel(data.eventStartsAt, data.eventEndsAt)}</p>
         </div>
 
-        <div
-          className="weekend-tablist"
-          role="tablist"
-          aria-label="Schedule days"
-        >
-          {eventDays.map((day, index) => (
-            <ScheduleTabButton
-              key={day.isoDate}
-              day={day}
-              index={index}
-              isSelected={index === selected}
-              tabRef={(node) => {
-                tabs.current[index] = node;
-              }}
-              onSelect={() => setSelected(index)}
-              onKeyDown={moveFocus}
-            />
-          ))}
-        </div>
-
-        {eventDays.map((day, index) => (
+        {days.length > 0 ? (
           <div
-            key={day.isoDate}
+            className="weekend-tablist"
+            role="tablist"
+            aria-label="Schedule days"
+          >
+            {days.map((day, index) => (
+              <ScheduleTabButton
+                key={day.date}
+                date={day.date}
+                index={index}
+                isSelected={index === activeIndex}
+                tabRef={(node) => {
+                  tabs.current[index] = node;
+                }}
+                onSelect={() => setSelectedDate(day.date)}
+                onKeyDown={moveFocus}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {days.map((day, index) => (
+          <div
+            key={day.date}
             id={`schedule-panel-${index + 1}`}
             className="weekend-panel"
             role="tabpanel"
             aria-labelledby={`schedule-tab-${index + 1}`}
             tabIndex={0}
-            hidden={index !== selected}
+            hidden={index !== activeIndex}
           >
             <div className="weekend-day-head">
-              <h3>{day.chapter}</h3>
-              <p>{`${day.weekday}, ${day.date}, 2026`}</p>
+              <h3>Day {scheduleDayChapter(index + 1)}</h3>
+              <p>{formatScheduleDate(day.date, true)}</p>
             </div>
-            {day.events.length === 0 ? (
+            {loading ? (
+              <p className="weekend-coming-soon" role={index === activeIndex ? "status" : undefined}>
+                Loading schedule…
+              </p>
+            ) : day.entries.length === 0 ? (
               <p className="weekend-coming-soon">Schedule coming soon!</p>
             ) : (
               <ol className="weekend-timeline">
-                {day.events.map((item) => (
-                  <li className="weekend-slot" key={item.at}>
-                    <time dateTime={`${day.isoDate}T${item.at}`}>
-                      {formatTime(item.at)}
+                {day.entries.map((entry) => (
+                  <li className="weekend-slot" key={`${day.date}-${entry.id}`}>
+                    <time dateTime={new Date(entry.startsAt).toISOString()}>
+                      {formatScheduleTime(entry.startsAt)} – {formatScheduleTime(entry.endsAt)}
                     </time>
-                    <span>{item.title}</span>
+                    <div>
+                      <span>{entry.title}</span>
+                      {entry.location ? (
+                        <p className="weekend-slot-location">{entry.location}</p>
+                      ) : null}
+                    </div>
                   </li>
                 ))}
               </ol>
-            )}{" "}
+            )}
           </div>
         ))}
       </div>
@@ -204,4 +184,16 @@ export function Schedule() {
       <span className="weekend-meander" data-edge="bottom" aria-hidden="true" />
     </section>
   );
+}
+
+function LiveSchedule() {
+  const { data, loading } = usePublicSchedule();
+  return <ScheduleView data={data} loading={loading} />;
+}
+
+export function Schedule() {
+  if (!getConvexClient()) {
+    return <ScheduleView data={FALLBACK_PUBLIC_SCHEDULE} loading={false} />;
+  }
+  return <LiveSchedule />;
 }

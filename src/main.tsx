@@ -1,6 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ConvexProvider } from 'convex/react'
+import { convexClient } from './convex/client'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
 import RegisterRedirect from './pages/RegisterRedirect'
@@ -9,7 +11,7 @@ import './styles/index.css'
 const root = document.getElementById('root')
 if (!root) throw new Error('Missing #root element')
 
-ReactDOM.createRoot(root).render(
+const app = (
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
@@ -19,4 +21,8 @@ ReactDOM.createRoot(root).render(
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
+)
+
+ReactDOM.createRoot(root).render(
+  convexClient ? <ConvexProvider client={convexClient}>{app}</ConvexProvider> : app,
 )

@@ -8,11 +8,12 @@ High-level structure of the HackUTA marketing site.
 Visitor ──► hackuta.com (this repo, static SPA on Vercel)
                 │
                 ├── Apply CTA ──► register.hackuta.com (separate repo)
+                ├── Schedule ──► Convex `profile/schedule:listPublicSchedule` (read-only)
                 ├── mailto: links (hello@, sponsor@)
                 └── External links (Discord, MLH badge, social)
 ```
 
-**No backend.** No Convex, API routes, forms, or database. All content is static or build-time configured.
+No forms, API routes, or mutations in this repo. The schedule section is a read-only Convex query against the same `schedule` table as the participant portal. All other content is static or build-time configured.
 
 ## Repository layout
 
@@ -64,7 +65,7 @@ Key integrations:
 | --- | --- |
 | Countdown | Client hook to event date |
 | Hero art / ship | SVG + canvas (Paper Dithering, Wave.js) |
-| Schedule | Tabbed static content |
+| Schedule | Tabbed live `schedule` table via Convex (`VITE_CONVEX_URL`) |
 | Apply buttons | `href={REGISTER_URL}` from `src/constants/site.ts` |
 | Contact | `mailto:` links only — no server submission on this site |
 
@@ -84,13 +85,14 @@ Production build copies `index.html` → `404.html` for SPA fallback on unknown 
 
 ## Environment configuration
 
-Single build-time variable:
+Build-time variables:
 
 | Variable | Purpose |
 | --- | --- |
 | `VITE_REGISTER_URL` | Apply CTA and `/register` redirect target |
+| `VITE_CONVEX_URL` | Convex WebSocket URL for the public schedule query |
 
-All other URLs (Discord, social, MLH badge) are hardcoded in source — change via code review, not env vars.
+All other URLs (Discord, social, MLH badge) are hardcoded in source — change via code review, not env vars. Without `VITE_CONVEX_URL`, the schedule falls back to empty Nov 14–15 tabs.
 
 ## Design system
 

@@ -8,6 +8,7 @@ import {
   LOGO_SIZES,
 } from "../../src/constants/images";
 import { PRIMARY_NAV_LINKS } from "../../src/constants/navigation";
+import { HACKATHON_SCHEDULE } from "../../src/constants/hackathon";
 import { REGISTER_URL } from "../../src/constants/site";
 import { SPONSOR_GROUPS } from "../../src/constants/sponsors";
 
@@ -30,5 +31,10 @@ describe("site constants", () => {
 
   it("points the register call to action at an absolute registration URL", () => {
     expect(REGISTER_URL).toMatch(/^https?:\/\//);
+  });
+
+  it("keeps the fallback hackathon window on November 14–15, 2026", () => {
+    expect(HACKATHON_SCHEDULE.endsAt).toBeGreaterThan(HACKATHON_SCHEDULE.startsAt);
+    expect(new Date(HACKATHON_SCHEDULE.startsAt).toISOString()).toBe("2026-11-14T15:00:00.000Z");
   });
 });

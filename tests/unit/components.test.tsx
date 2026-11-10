@@ -131,6 +131,13 @@ describe("Schedule", () => {
     await user.click(dayOne);
     fireEvent.keyDown(dayOne, { key: "ArrowRight" });
     expect(dayTwo).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(dayTwo, { key: "ArrowLeft" });
+    expect(dayOne).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(dayOne, { key: "ArrowDown" });
+    expect(dayTwo).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(dayTwo, { key: "ArrowUp" });
+    expect(dayOne).toHaveAttribute("aria-selected", "true");
   });
 });
 

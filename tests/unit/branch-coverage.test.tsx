@@ -48,6 +48,9 @@ describe("Schedule keyboard shortcuts", () => {
       key: "Home",
     });
     expect(dayOne).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(dayOne, { key: "Enter" });
+    expect(dayOne).toHaveAttribute("aria-selected", "true");
   });
 });
 
