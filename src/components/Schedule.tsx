@@ -2,7 +2,7 @@ import { useRef, useState, type CSSProperties, type KeyboardEvent } from "react"
 import { OliveBranch } from "./art/OliveBranch";
 import { ThemeArt } from "./art/ThemeArt";
 import { getConvexClient } from "../convex/client";
-import type { PublicSchedule } from "../convex/api";
+import type { PublicSchedule, ScheduleEntry } from "../convex/api";
 import { FALLBACK_PUBLIC_SCHEDULE, usePublicSchedule } from "../hooks/usePublicSchedule";
 import {
   formatEventWindowLabel,
@@ -15,6 +15,7 @@ import {
   scheduleDayNumeral,
   scheduleEntryIsMilestone,
   scheduleEntrySlotCount,
+  type ScheduleOverlapPlacement,
 } from "../lib/schedule";
 
 function nearestDayIndex(days: Array<{ date: string }>) {
@@ -65,6 +66,52 @@ function ScheduleTabButton({
         <span className="weekend-tab-date">{formatScheduleDate(date)}</span>
       </span>
     </button>
+  );
+}
+
+function ScheduleSlot({
+  entry,
+  placement,
+}: {
+  entry: ScheduleEntry;
+  placement?: ScheduleOverlapPlacement;
+}) {
+  const milestone = scheduleEntryIsMilestone(entry);
+  const slotSpan = scheduleEntrySlotCount(entry);
+  const className = [
+    "weekend-slot",
+    milestone
+      ? "weekend-slot--milestone"
+      : placement
+        ? "weekend-slot--grid-timed"
+        : "weekend-slot--proportional",
+  ].join(" ");
+
+  return (
+    <li
+      className={className}
+      style={
+        placement
+          ? ({
+              gridColumn: placement.fullWidth ? "1 / -1" : placement.column + 1,
+              gridRow: `${placement.gridRowStart} / ${placement.gridRowEnd}`,
+              ...(milestone ? {} : { "--schedule-slot-span": String(slotSpan) }),
+            } as CSSProperties)
+          : milestone
+            ? undefined
+            : ({
+                "--schedule-slot-span": String(slotSpan),
+              } as CSSProperties)
+      }
+    >
+      <time dateTime={new Date(entry.startsAt).toISOString()}>
+        {formatScheduleEntryTime(entry)}
+      </time>
+      <span className="weekend-slot-title">{entry.title}</span>
+      {entry.location ? (
+        <p className="weekend-slot-location">{entry.location}</p>
+      ) : null}
+    </li>
   );
 }
 
@@ -184,51 +231,20 @@ function ScheduleView({ data, loading }: { data: PublicSchedule; loading: boolea
                         : undefined
                     }
                   >
-                  {(useOverlapGrid ? overlapLayout.placements : day.entries.map((entry) => ({ entry }))).map(
-                    (item) => {
-                      const entry = item.entry;
-                      const placement = "gridRowStart" in item ? item : null;
-                      const milestone = scheduleEntryIsMilestone(entry);
-                      const slotSpan = scheduleEntrySlotCount(entry);
-                      const className = [
-                        "weekend-slot",
-                        milestone
-                          ? "weekend-slot--milestone"
-                          : placement
-                            ? "weekend-slot--grid-timed"
-                            : "weekend-slot--proportional",
-                      ].join(" ");
-                      return (
-                        <li
-                          className={className}
+                  {useOverlapGrid
+                    ? overlapLayout.placements.map((placement) => (
+                        <ScheduleSlot
+                          key={`${day.date}-${placement.entry.id}`}
+                          entry={placement.entry}
+                          placement={placement}
+                        />
+                      ))
+                    : day.entries.map((entry) => (
+                        <ScheduleSlot
                           key={`${day.date}-${entry.id}`}
-                          style={
-                            placement
-                              ? ({
-                                  gridColumn: placement.fullWidth ? "1 / -1" : placement.column + 1,
-                                  gridRow: `${placement.gridRowStart} / ${placement.gridRowEnd}`,
-                                  ...(milestone
-                                    ? {}
-                                    : { "--schedule-slot-span": String(slotSpan) }),
-                                } as CSSProperties)
-                              : milestone
-                                ? undefined
-                                : ({
-                                    "--schedule-slot-span": String(slotSpan),
-                                  } as CSSProperties)
-                          }
-                        >
-                          <time dateTime={new Date(entry.startsAt).toISOString()}>
-                            {formatScheduleEntryTime(entry)}
-                          </time>
-                          <span className="weekend-slot-title">{entry.title}</span>
-                          {entry.location ? (
-                            <p className="weekend-slot-location">{entry.location}</p>
-                          ) : null}
-                        </li>
-                      );
-                    },
-                  )}
+                          entry={entry}
+                        />
+                      ))}
                   </ol>
                 </div>
               );

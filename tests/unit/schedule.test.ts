@@ -136,7 +136,7 @@ describe("landing schedule display", () => {
 
     expect(scheduleEntryIsMilestone({ ...hackingEnds, title: "Hacking Starts" })).toBe(true);
     expect(scheduleEntryIsMilestone(hackingEnds)).toBe(true);
-    expect(scheduleEntryIsMilestone({ title: "Devpost Deadline", ...hackingEnds })).toBe(true);
+    expect(scheduleEntryIsMilestone({ ...hackingEnds, title: "Devpost Deadline" })).toBe(true);
     expect(scheduleEntryIsMilestone(workshop)).toBe(false);
     expect(formatScheduleEntryTime(hackingEnds)).toBe("12:00 PM");
     expect(formatScheduleEntryTime(workshop)).toBe("3:00 PM – 3:45 PM");

@@ -46,7 +46,7 @@ export function scheduleEntryWindowsOverlap(left: ScheduleTimeWindow, right: Sch
   return left.startsAt < right.endsAt && left.endsAt > right.startsAt;
 }
 
-export function scheduleDayHasOverlappingEntries(entries: ScheduleTimeWindow[]) {
+export function scheduleDayHasOverlappingEntries(entries: readonly ScheduleTimeWindow[]) {
   for (let index = 0; index < entries.length; index += 1) {
     const left = entries[index];
     if (!left) continue;
