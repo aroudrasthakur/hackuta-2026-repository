@@ -190,7 +190,7 @@ describe("Header and Footer", () => {
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Instagram" })).toHaveAttribute(
       "href",
-      "https://instagram.com/hackuta",
+      "https://www.instagram.com/hack.uta/",
     );
   });
 });

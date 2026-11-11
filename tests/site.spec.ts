@@ -20,7 +20,7 @@ test('event content and navigation are honest and complete', async ({ page }) =>
     'href',
     /docs\.google\.com\/forms/,
   )
-  await expect(page.locator('#footer').getByRole('link', { name: 'Instagram' })).toHaveAttribute('href', /instagram\.com\/hackuta/)
+  await expect(page.locator('#footer').getByRole('link', { name: 'Instagram' })).toHaveAttribute('href', /instagram\.com\/hack\.uta/)
   await expect(page.locator('#footer').getByRole('link', { name: 'Code of Conduct' })).toHaveAttribute('href', /mlh\.io\/code-of-conduct/)
   await expect(page.getByText('Your odyssey begins here', { exact: false })).toHaveCount(0)
   await expect(page.locator('.oracle-item')).toHaveCount(9)

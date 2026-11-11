@@ -14,7 +14,7 @@ const otherHackathons = [
 
 const socialLinks = [
   {
-    href: "https://instagram.com/hackuta",
+    href: "https://www.instagram.com/hack.uta/",
     label: "Instagram",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
