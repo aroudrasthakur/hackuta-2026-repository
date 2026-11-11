@@ -65,6 +65,12 @@ export const sponsors: Sponsor[] = [
     link: "https://www.xome.com/who-we-are",
   },
   {
+    name: "SAME Fort Worth Post",
+    image: "/images/sponsors/same-fw.jpg",
+    group: "direct",
+    link: "https://samefortworth.org/",
+  },
+  {
     name: "Pure Buttons",
     image: "/images/sponsors/pure-buttons.webp",
     group: "in-kind",
