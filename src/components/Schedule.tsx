@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { OliveBranch } from "./art/OliveBranch";
 import { ThemeArt } from "./art/ThemeArt";
 import { getConvexClient } from "../convex/client";
@@ -7,11 +7,14 @@ import { FALLBACK_PUBLIC_SCHEDULE, usePublicSchedule } from "../hooks/usePublicS
 import {
   formatEventWindowLabel,
   formatScheduleDate,
-  formatScheduleTime,
+  formatScheduleEntryTime,
   groupScheduleEntriesByDay,
   scheduleDateKey,
   scheduleDayChapter,
+  buildScheduleDayOverlapPlacements,
   scheduleDayNumeral,
+  scheduleEntryIsMilestone,
+  scheduleEntrySlotCount,
 } from "../lib/schedule";
 
 function nearestDayIndex(days: Array<{ date: string }>) {
@@ -157,23 +160,79 @@ function ScheduleView({ data, loading }: { data: PublicSchedule; loading: boolea
               </p>
             ) : day.entries.length === 0 ? (
               <p className="weekend-coming-soon">Schedule coming soon!</p>
-            ) : (
-              <ol className="weekend-timeline">
-                {day.entries.map((entry) => (
-                  <li className="weekend-slot" key={`${day.date}-${entry.id}`}>
-                    <time dateTime={new Date(entry.startsAt).toISOString()}>
-                      {formatScheduleTime(entry.startsAt)} – {formatScheduleTime(entry.endsAt)}
-                    </time>
-                    <div>
-                      <span>{entry.title}</span>
-                      {entry.location ? (
-                        <p className="weekend-slot-location">{entry.location}</p>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
+            ) : (() => {
+              const overlapLayout = buildScheduleDayOverlapPlacements(day.entries);
+              const useOverlapGrid = overlapLayout !== null;
+
+              return (
+                <div
+                  className="weekend-timeline-scroll"
+                  role="region"
+                  aria-label={`Schedule activities for ${formatScheduleDate(day.date, true)}`}
+                >
+                  <ol
+                    className={
+                      useOverlapGrid
+                        ? "weekend-timeline weekend-timeline--overlapping"
+                        : "weekend-timeline"
+                    }
+                    style={
+                      useOverlapGrid
+                        ? ({
+                            "--schedule-grid-rows": String(overlapLayout.gridRowCount),
+                          } as CSSProperties)
+                        : undefined
+                    }
+                  >
+                  {(useOverlapGrid ? overlapLayout.placements : day.entries.map((entry) => ({ entry }))).map(
+                    (item) => {
+                      const entry = item.entry;
+                      const placement = "gridRowStart" in item ? item : null;
+                      const milestone = scheduleEntryIsMilestone(entry);
+                      const slotSpan = scheduleEntrySlotCount(entry);
+                      const className = [
+                        "weekend-slot",
+                        milestone
+                          ? "weekend-slot--milestone"
+                          : placement
+                            ? "weekend-slot--grid-timed"
+                            : "weekend-slot--proportional",
+                      ].join(" ");
+                      return (
+                        <li
+                          className={className}
+                          key={`${day.date}-${entry.id}`}
+                          style={
+                            placement
+                              ? ({
+                                  gridColumn: placement.fullWidth ? "1 / -1" : placement.column + 1,
+                                  gridRow: `${placement.gridRowStart} / ${placement.gridRowEnd}`,
+                                  ...(milestone
+                                    ? {}
+                                    : { "--schedule-slot-span": String(slotSpan) }),
+                                } as CSSProperties)
+                              : milestone
+                                ? undefined
+                                : ({
+                                    "--schedule-slot-span": String(slotSpan),
+                                  } as CSSProperties)
+                          }
+                        >
+                          <time dateTime={new Date(entry.startsAt).toISOString()}>
+                            {formatScheduleEntryTime(entry)}
+                          </time>
+                          <span className="weekend-slot-title">{entry.title}</span>
+                          {entry.location ? (
+                            <p className="weekend-slot-location">{entry.location}</p>
+                          ) : null}
+                        </li>
+                      );
+                    },
+                  )}
+                  </ol>
+                </div>
+              );
+            })()}
           </div>
         ))}
       </div>

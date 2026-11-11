@@ -9,6 +9,128 @@ export type ScheduleDay = {
   entries: ScheduleEntry[];
 };
 
+export type ScheduleTimeWindow = Pick<ScheduleEntry, "startsAt" | "endsAt">;
+
+export const SCHEDULE_OVERLAP_GRID_SLOT_MS = 15 * 60 * 1000;
+const MILESTONE_TITLE = /hacking\s+starts|hacking\s+ends|devpost\s+deadline/i;
+
+export function scheduleEntrySlotCount(
+  entry: ScheduleTimeWindow,
+  slotMs = SCHEDULE_OVERLAP_GRID_SLOT_MS,
+) {
+  return Math.max(1, Math.ceil((entry.endsAt - entry.startsAt) / slotMs));
+}
+
+export function scheduleEntryIsMilestone(
+  entry: ScheduleTimeWindow & { title?: string },
+) {
+  return Boolean(entry.title && MILESTONE_TITLE.test(entry.title));
+}
+
+export function formatScheduleEntryTime(entry: ScheduleTimeWindow & { title?: string }) {
+  const start = formatScheduleTime(entry.startsAt);
+  if (scheduleEntryIsMilestone(entry)) return start;
+  return `${start} – ${formatScheduleTime(entry.endsAt)}`;
+}
+
+export type ScheduleOverlapPlacement<T extends ScheduleTimeWindow = ScheduleEntry> = {
+  entry: T;
+  column: 0 | 1;
+  fullWidth: boolean;
+  gridRowStart: number;
+  gridRowEnd: number;
+};
+
+/** True when intervals share time (touching end/start is not overlap). */
+export function scheduleEntryWindowsOverlap(left: ScheduleTimeWindow, right: ScheduleTimeWindow) {
+  return left.startsAt < right.endsAt && left.endsAt > right.startsAt;
+}
+
+export function scheduleDayHasOverlappingEntries(entries: ScheduleTimeWindow[]) {
+  for (let index = 0; index < entries.length; index += 1) {
+    const left = entries[index];
+    if (!left) continue;
+    for (let other = index + 1; other < entries.length; other += 1) {
+      const right = entries[other];
+      if (right && scheduleEntryWindowsOverlap(left, right)) return true;
+    }
+  }
+  return false;
+}
+
+export function scheduleEntryOverlapsAnother<T extends ScheduleTimeWindow>(
+  entry: T,
+  entries: readonly T[],
+) {
+  return entries.some(
+    (other) => other !== entry && scheduleEntryWindowsOverlap(entry, other),
+  );
+}
+
+/** Picks a left or right track so concurrent activities sit side by side. */
+export function assignScheduleOverlapColumns<T extends ScheduleTimeWindow>(
+  entries: readonly T[],
+): Map<T, 0 | 1> {
+  const sorted = [...entries].sort(
+    (left, right) => left.startsAt - right.startsAt || left.endsAt - right.endsAt,
+  );
+  const columnEnds: [number, number] = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY];
+  const assignment = new Map<T, 0 | 1>();
+
+  for (const entry of sorted) {
+    let column: 0 | 1 | null = null;
+    for (const candidate of [0, 1] as const) {
+      if (entry.startsAt >= columnEnds[candidate]) {
+        column = candidate;
+        break;
+      }
+    }
+    if (column === null) {
+      column = columnEnds[0] <= columnEnds[1] ? 0 : 1;
+    }
+    assignment.set(entry, column);
+    columnEnds[column] = Math.max(columnEnds[column], entry.endsAt);
+  }
+
+  return assignment;
+}
+
+export function buildScheduleDayOverlapPlacements<T extends ScheduleTimeWindow>(
+  entries: readonly T[],
+  slotMs = SCHEDULE_OVERLAP_GRID_SLOT_MS,
+): { placements: ScheduleOverlapPlacement<T>[]; gridRowCount: number } | null {
+  if (!scheduleDayHasOverlappingEntries(entries)) return null;
+
+  const origin = Math.min(...entries.map((entry) => entry.startsAt));
+  const end = Math.max(...entries.map((entry) => entry.endsAt));
+  const gridRowCount = Math.max(1, Math.ceil((end - origin) / slotMs));
+  const columns = assignScheduleOverlapColumns(entries);
+
+  const placements = entries.map((entry) => {
+    const gridRowStart = Math.floor((entry.startsAt - origin) / slotMs) + 1;
+    const gridRowEnd = Math.max(
+      gridRowStart + 1,
+      Math.ceil((entry.endsAt - origin) / slotMs) + 1,
+    );
+    return {
+      entry,
+      column: columns.get(entry) ?? 0,
+      fullWidth: !scheduleEntryOverlapsAnother(entry, entries),
+      gridRowStart,
+      gridRowEnd,
+    };
+  });
+
+  placements.sort(
+    (left, right) =>
+      left.gridRowStart - right.gridRowStart ||
+      left.column - right.column ||
+      left.entry.startsAt - right.entry.startsAt,
+  );
+
+  return { placements, gridRowCount };
+}
+
 export function scheduleDayNumeral(dayNumber: number) {
   return ROMAN_NUMERALS[dayNumber - 1] ?? String(dayNumber);
 }

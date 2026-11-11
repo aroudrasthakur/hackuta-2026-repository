@@ -7,7 +7,14 @@ import {
   groupScheduleEntriesByDay,
   scheduleDateKey,
   scheduleDayChapter,
+  assignScheduleOverlapColumns,
+  buildScheduleDayOverlapPlacements,
+  formatScheduleEntryTime,
+  scheduleDayHasOverlappingEntries,
   scheduleDayNumeral,
+  scheduleEntryIsMilestone,
+  scheduleEntrySlotCount,
+  scheduleEntryWindowsOverlap,
 } from "../../src/lib/schedule";
 
 const overnightActivity: ScheduleEntry = {
@@ -73,6 +80,114 @@ describe("landing schedule display", () => {
     expect(groupScheduleEntriesByDay([endsAtMidnight]).map((day) => day.date)).toEqual([
       "2026-11-14",
     ]);
+  });
+
+  it("treats touching windows as non-overlapping and overlapping windows as overlapping", () => {
+    const nineToEleven = {
+      startsAt: Date.parse("2026-11-14T09:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T11:00:00-06:00"),
+    };
+    const elevenToNoon = {
+      startsAt: Date.parse("2026-11-14T11:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T12:00:00-06:00"),
+    };
+    const noonToLunch = {
+      startsAt: Date.parse("2026-11-14T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T13:30:00-06:00"),
+    };
+    const noonToEnd = {
+      startsAt: Date.parse("2026-11-14T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-15T18:00:00-06:00"),
+    };
+
+    expect(scheduleEntryWindowsOverlap(nineToEleven, elevenToNoon)).toBe(false);
+    expect(scheduleDayHasOverlappingEntries([nineToEleven, elevenToNoon, noonToLunch])).toBe(false);
+    expect(scheduleEntryWindowsOverlap(noonToLunch, noonToEnd)).toBe(true);
+    expect(scheduleDayHasOverlappingEntries([nineToEleven, elevenToNoon, noonToLunch, noonToEnd])).toBe(
+      true,
+    );
+  });
+
+  it("counts fixed time slots from event duration", () => {
+    const hour = {
+      startsAt: Date.parse("2026-11-14T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T13:00:00-06:00"),
+    };
+    const lunch = {
+      startsAt: Date.parse("2026-11-14T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T13:30:00-06:00"),
+    };
+    expect(scheduleEntrySlotCount(hour)).toBe(4);
+    expect(scheduleEntrySlotCount(lunch)).toBe(6);
+    expect(scheduleEntrySlotCount(lunch)).toBeGreaterThan(scheduleEntrySlotCount(hour));
+  });
+
+  it("treats hacking and Devpost markers as single-time milestones", () => {
+    const hackingEnds = {
+      title: "Hacking Ends",
+      startsAt: Date.parse("2026-11-15T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-15T12:15:00-06:00"),
+    };
+    const workshop = {
+      title: "Adobe Workshop",
+      startsAt: Date.parse("2026-11-14T15:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T15:45:00-06:00"),
+    };
+
+    expect(scheduleEntryIsMilestone({ ...hackingEnds, title: "Hacking Starts" })).toBe(true);
+    expect(scheduleEntryIsMilestone(hackingEnds)).toBe(true);
+    expect(scheduleEntryIsMilestone({ title: "Devpost Deadline", ...hackingEnds })).toBe(true);
+    expect(scheduleEntryIsMilestone(workshop)).toBe(false);
+    expect(formatScheduleEntryTime(hackingEnds)).toBe("12:00 PM");
+    expect(formatScheduleEntryTime(workshop)).toBe("3:00 PM – 3:45 PM");
+  });
+
+  it("places overlapping activities on separate tracks with time-aligned grid rows", () => {
+    const lunch = {
+      id: "lunch",
+      startsAt: Date.parse("2026-11-14T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T13:30:00-06:00"),
+    };
+    const mlh = {
+      id: "mlh",
+      startsAt: Date.parse("2026-11-14T13:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T14:00:00-06:00"),
+    };
+  const columns = assignScheduleOverlapColumns([lunch, mlh]);
+    expect(columns.get(lunch)).toBe(0);
+    expect(columns.get(mlh)).toBe(1);
+
+    const layout = buildScheduleDayOverlapPlacements([lunch, mlh]);
+    expect(layout).not.toBeNull();
+    const lunchPlacement = layout?.placements.find((row) => row.entry === lunch);
+    const mlhPlacement = layout?.placements.find((row) => row.entry === mlh);
+    expect(lunchPlacement?.gridRowStart).toBeLessThan(mlhPlacement?.gridRowStart ?? 0);
+    expect(mlhPlacement?.gridRowStart).toBeGreaterThan(lunchPlacement?.gridRowStart ?? 0);
+    expect(mlhPlacement?.gridRowStart).toBeLessThan(lunchPlacement?.gridRowEnd ?? 0);
+  });
+
+  it("keeps non-overlapping activities full width on overlap days", () => {
+    const checkIn = {
+      id: "check-in",
+      startsAt: Date.parse("2026-11-14T09:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T10:00:00-06:00"),
+    };
+    const lunch = {
+      id: "lunch",
+      startsAt: Date.parse("2026-11-14T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T13:30:00-06:00"),
+    };
+    const mlh = {
+      id: "mlh",
+      startsAt: Date.parse("2026-11-14T13:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T14:00:00-06:00"),
+    };
+
+    const layout = buildScheduleDayOverlapPlacements([checkIn, lunch, mlh]);
+    const checkInPlacement = layout?.placements.find((row) => row.entry === checkIn);
+    const lunchPlacement = layout?.placements.find((row) => row.entry === lunch);
+    expect(checkInPlacement?.fullWidth).toBe(true);
+    expect(lunchPlacement?.fullWidth).toBe(false);
   });
 
   it("formats the event window in Central Time", () => {
