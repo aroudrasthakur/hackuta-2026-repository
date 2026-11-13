@@ -159,7 +159,7 @@ describe("Sponsors", () => {
   it("renders approved sponsors in direct and in-kind groups", () => {
     render(<Sponsors />);
     expect(screen.getByRole("region", { name: "Sponsors" }).querySelectorAll(".sponsor-badge")).toHaveLength(8);
-    expect(screen.getByRole("region", { name: "Also thanking" }).querySelectorAll(".sponsor-badge")).toHaveLength(4);
+    expect(screen.getByRole("region", { name: "Also thanking" }).querySelectorAll(".sponsor-badge")).toHaveLength(5);
     expect(screen.getByRole("link", { name: "UTA OSHA Education Center" })).toHaveAttribute("href", "https://www.uta.edu/ded/osha");
     expect(screen.getByRole("link", { name: "Chert" })).toHaveAttribute("href", "https://www.trychert.com/");
     expect(screen.getByRole("link", { name: "Xome" })).toHaveAttribute("href", "https://www.xome.com/who-we-are");
@@ -174,6 +174,7 @@ describe("Sponsors", () => {
       "https://www.saxbyscoffee.com/location/university-of-texas-at-arlington/",
     );
     expect(screen.getByRole("link", { name: "Eleven Labs" })).toHaveAttribute("href", "https://elevenlabs.io/");
+    expect(screen.getByRole("link", { name: "Deepspace" })).toHaveAttribute("href", "https://deep.space/");
     expect(screen.getByRole("link", { name: "Become a sponsor" }).getAttribute("href")).toContain(
       "mailto:sponsor@hackuta.org",
     );

@@ -50,9 +50,10 @@ Outbound links are hardcoded in components — not from user input:
 | Social (Instagram, LinkedIn, GitHub) | `src/components/Footer.tsx` |
 | MLH badge + Code of Conduct | `Header.tsx`, `Footer.tsx` |
 | Sponsor mailto | `src/constants/sponsors.ts` |
+| Sponsor brand links | `src/constants/sponsors.ts` (`sponsors` roster) |
 | FAQ mailto | `src/components/FAQ.tsx` |
 
-When adding sponsor logos or links, use **hardcoded trusted URLs** in source files — never runtime user/admin input on this static site.
+When adding sponsor logos or links, use **hardcoded trusted URLs** in `src/constants/sponsors.ts` and matching assets under `public/images/sponsors/` — never runtime user/admin input on this static site. Update `tests/unit/constants.test.ts`, `tests/unit/components.test.tsx`, and `tests/site.spec.ts` when the roster changes.
 
 ## Register URL integrity
 

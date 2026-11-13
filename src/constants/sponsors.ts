@@ -93,5 +93,11 @@ export const sponsors: Sponsor[] = [
     image: "/images/sponsors/elevenlabs.svg",
     group: "in-kind",
     link: "https://elevenlabs.io/",
+  },
+  {
+    name: "Deepspace",
+    image: "/images/sponsors/deepspace.png",
+    group: "in-kind",
+    link: "https://deep.space/",
   }
 ];

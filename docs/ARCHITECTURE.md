@@ -27,7 +27,7 @@ src/
   components/              Hero, Schedule, FAQ, Sponsors, Header, Footer, art
   constants/
     site.ts                REGISTER_URL from env
-    sponsors.ts            Sponsor data + mailto helper
+    sponsors.ts            Approved sponsor roster, groups, mailto helper (`public/images/sponsors/`)
   hooks/                   Countdown, motion, etc.
 
 security/

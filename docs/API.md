@@ -42,6 +42,7 @@ No `fetch()` to third-party APIs at runtime. `connect-src` allows Convex WebSock
 | **Discord** | External link | `About.tsx` | `https://discord.gg/2bVsYS3SgS` |
 | **General contact** | mailto | `FAQ.tsx` | `hello@hackuta.org` |
 | **Sponsorship** | mailto | `sponsors.ts` | `sponsor@hackuta.org` |
+| **Sponsor logos** | External links | `sponsors.ts` | Approved roster (`direct` + `in-kind` groups), e.g. `https://deep.space/` for Deepspace |
 | **MLH badge** | External link | `Header.tsx` | `mlh.io` trust badge |
 | **MLH Code of Conduct** | External link | `Footer.tsx` | `mlh.io/code-of-conduct` |
 | **Social** | External links | `Footer.tsx` | Instagram, LinkedIn, GitHub |

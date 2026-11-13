@@ -45,6 +45,7 @@ npm run build
 | Change | Update |
 | --- | --- |
 | Routes or external links | [API.md](API.md) |
+| Sponsor roster or logos | `src/constants/sponsors.ts`, `public/images/sponsors/`, sponsor tests in `tests/unit/` + `tests/site.spec.ts`, [SECURITY.md](SECURITY.md) |
 | Security headers | [SECURITY.md](SECURITY.md) |
 | Deploy/env | [OPERATIONS.md](OPERATIONS.md), [README.md](../README.md) |
 | Design tokens | [palette.md](palette.md) |

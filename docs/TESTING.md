@@ -28,13 +28,14 @@ npm run qa:mcp                 # design verification harness
 | Area | Files |
 | --- | --- |
 | CSP / header sync | `security.test.ts`, `utils.test.ts` |
+| Sponsor roster + links | `constants.test.ts`, `components.test.tsx` (Sponsors) |
 | Utilities, hooks | `utils.test.ts`, component tests |
 
 CSP test ensures `security/csp.ts` matches `vercel.json`.
 
 ## E2E tests (Playwright)
 
-Cover event content, schedule tabs, navigation, mobile menu, ship animation, storm layers, reduced motion, responsive layouts, and axe WCAG 2.1 A/AA checks.
+Cover event content, schedule tabs, navigation, sponsor roster counts and outbound links, mobile menu, ship animation, storm layers, reduced motion, responsive layouts, and axe WCAG 2.1 A/AA checks.
 
 CI builds production `dist/` and runs Playwright against the artifact — same path as:
 

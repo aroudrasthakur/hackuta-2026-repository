@@ -39,9 +39,10 @@ test('event content and navigation are honest and complete', async ({ page }) =>
     'https://www.saxbyscoffee.com/location/university-of-texas-at-arlington/',
   )
   await expect(sponsors.getByRole('region', { name: 'Also thanking' }).getByRole('link', { name: 'Eleven Labs' })).toHaveAttribute('href', 'https://elevenlabs.io/')
+  await expect(sponsors.getByRole('region', { name: 'Also thanking' }).getByRole('link', { name: 'Deepspace' })).toHaveAttribute('href', 'https://deep.space/')
   await expect(sponsors.getByRole('link', { name: 'Become a Sponsor' })).toHaveAttribute('href', /^mailto:sponsor@hackuta\.org/)
   await expect(sponsors.locator('.sponsor-group')).toHaveCount(2)
-  await expect(sponsors.locator('.sponsor-badge')).toHaveCount(12)
+  await expect(sponsors.locator('.sponsor-badge')).toHaveCount(13)
   const beginnerQuestion = page.getByText("What if I've never been to a hackathon?", { exact: true })
   await beginnerQuestion.click()
   await expect(page.getByText(/No experience required\. We run onboarding sessions/)).toBeVisible()
