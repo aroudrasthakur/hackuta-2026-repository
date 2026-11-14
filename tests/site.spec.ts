@@ -11,7 +11,10 @@ test('event content and navigation are honest and complete', async ({ page }) =>
   await expect(page.getByRole('tabpanel')).toContainText('Schedule coming soon!')
   await expect(page.locator('.odyssey-call-perks > li')).toHaveCount(3)
   await expect(page.getByRole('link', { name: 'Join Discord', exact: true })).toHaveAttribute('href', /discord\.gg/)
-  await expect(page.getByRole('button', { name: 'Devpost (Coming Soon)', exact: true })).toBeDisabled()
+  await expect(page.getByRole('link', { name: 'Devpost', exact: true })).toHaveAttribute(
+    'href',
+    'https://hackuta-8.devpost.com/',
+  )
   await expect(page.getByRole('link', { name: 'Judge Sign Up', exact: true })).toHaveAttribute(
     'href',
     /docs\.google\.com\/forms/,
