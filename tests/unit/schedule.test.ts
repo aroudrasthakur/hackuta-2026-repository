@@ -14,7 +14,11 @@ import {
   scheduleDayNumeral,
   scheduleEntryIsMilestone,
   scheduleEntrySlotCount,
+  scheduleEntryOverlapGridFullWidth,
+  scheduleEntrySpansOverlapGridFullWidth,
   scheduleEntryWindowsOverlap,
+  resolveScheduleDisplayCategory,
+  scheduleSlotCategoryClass,
 } from "../../src/lib/schedule";
 
 const overnightActivity: ScheduleEntry = {
@@ -122,6 +126,24 @@ describe("landing schedule display", () => {
     expect(scheduleEntrySlotCount(lunch)).toBeGreaterThan(scheduleEntrySlotCount(hour));
   });
 
+  it("resolves display categories for color coding", () => {
+    expect(
+      resolveScheduleDisplayCategory({ title: "Check-in", category: "event" }),
+    ).toBe("check_in");
+    expect(
+      resolveScheduleDisplayCategory({ title: "Quiet Time", category: "quiet_time" }),
+    ).toBe("check_in");
+    expect(
+      resolveScheduleDisplayCategory({ title: "Hacking Starts", category: "event" }),
+    ).toBe("milestone");
+    expect(
+      resolveScheduleDisplayCategory({ title: "Lunch", category: "meal" }),
+    ).toBe("meal");
+    expect(
+      scheduleSlotCategoryClass({ title: "Check-in", category: "check_in" }),
+    ).toBe("weekend-slot--cat-check-in");
+  });
+
   it("treats hacking and Devpost markers as single-time milestones", () => {
     const hackingEnds = {
       title: "Hacking Ends",
@@ -164,6 +186,57 @@ describe("landing schedule display", () => {
     expect(lunchPlacement?.gridRowStart).toBeLessThan(mlhPlacement?.gridRowStart ?? 0);
     expect(mlhPlacement?.gridRowStart).toBeGreaterThan(lunchPlacement?.gridRowStart ?? 0);
     expect(mlhPlacement?.gridRowStart).toBeLessThan(lunchPlacement?.gridRowEnd ?? 0);
+  });
+
+  it("spans Hacking Ends across both columns but keeps Hacking Starts in one column", () => {
+    const hackingStarts = {
+      id: "hacking-starts",
+      title: "Hacking Starts",
+      startsAt: Date.parse("2026-11-14T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T12:15:00-06:00"),
+    };
+    const hackingEnds = {
+      id: "hacking-ends",
+      title: "Hacking Ends",
+      startsAt: Date.parse("2026-11-15T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-15T12:15:00-06:00"),
+    };
+    const lunch = {
+      id: "lunch",
+      startsAt: Date.parse("2026-11-14T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-14T13:00:00-06:00"),
+    };
+
+    expect(scheduleEntrySpansOverlapGridFullWidth(hackingStarts)).toBe(false);
+    expect(scheduleEntrySpansOverlapGridFullWidth(hackingEnds)).toBe(true);
+    expect(
+      scheduleEntrySpansOverlapGridFullWidth({
+        title: "Hacking Ends (main stage)",
+        startsAt: hackingEnds.startsAt,
+        endsAt: hackingEnds.endsAt,
+      }),
+    ).toBe(true);
+
+    const dayOne = buildScheduleDayOverlapPlacements([hackingStarts, lunch]);
+    const startsPlacement = dayOne?.placements.find((row) => row.entry === hackingStarts);
+    expect(startsPlacement?.fullWidth).toBe(false);
+    expect(startsPlacement?.column).toBe(0);
+
+    const lunchDayTwo = {
+      ...lunch,
+      startsAt: Date.parse("2026-11-15T12:00:00-06:00"),
+      endsAt: Date.parse("2026-11-15T13:00:00-06:00"),
+    };
+    const dayTwo = buildScheduleDayOverlapPlacements([hackingEnds, lunchDayTwo]);
+    const endsPlacement = dayTwo?.placements.find((row) => row.entry === hackingEnds);
+    const lunchPlacement = dayTwo?.placements.find((row) => row.entry === lunchDayTwo);
+    expect(endsPlacement?.fullWidth).toBe(false);
+    expect(endsPlacement?.column).toBe(0);
+    expect(lunchPlacement?.column).toBe(1);
+    expect(scheduleEntryOverlapGridFullWidth(hackingEnds, [hackingEnds])).toBe(true);
+    expect(scheduleEntryOverlapGridFullWidth(hackingEnds, [hackingEnds, lunchDayTwo])).toBe(
+      false,
+    );
   });
 
   it("keeps non-overlapping activities full width on overlap days", () => {

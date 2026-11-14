@@ -15,6 +15,7 @@ import {
   scheduleDayNumeral,
   scheduleEntryIsMilestone,
   scheduleEntrySlotCount,
+  scheduleSlotCategoryClass,
   type ScheduleOverlapPlacement,
 } from "../lib/schedule";
 
@@ -80,12 +81,17 @@ function ScheduleSlot({
   const slotSpan = scheduleEntrySlotCount(entry);
   const className = [
     "weekend-slot",
-    milestone
-      ? "weekend-slot--milestone"
-      : placement
+    scheduleSlotCategoryClass(entry),
+    milestone ? "weekend-slot--milestone" : "",
+    milestone && placement?.fullWidth ? "weekend-slot--milestone-full" : "",
+    !milestone
+      ? placement
         ? "weekend-slot--grid-timed"
-        : "weekend-slot--proportional",
-  ].join(" ");
+        : "weekend-slot--proportional"
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <li

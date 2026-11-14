@@ -43,12 +43,13 @@ describe("Schedule live Convex entries", () => {
           startsAt: HACKATHON_SCHEDULE.startsAt,
           endsAt: HACKATHON_SCHEDULE.startsAt + 60 * 60 * 1000,
           location: "SEIR lobby",
-          category: "event",
+          category: "check_in",
         },
       ],
     });
     await renderSchedule();
     const panel = screen.getByRole("tabpanel", { hidden: false });
+    expect(panel.querySelector(".weekend-slot--cat-check-in")).not.toBeNull();
     expect(panel).toHaveTextContent("Check-in");
     expect(panel).toHaveTextContent("SEIR lobby");
     expect(panel).toHaveTextContent("9:00 AM – 10:00 AM");

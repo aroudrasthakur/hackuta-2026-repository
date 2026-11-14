@@ -13,6 +13,33 @@ export type ScheduleTimeWindow = Pick<ScheduleEntry, "startsAt" | "endsAt">;
 
 export const SCHEDULE_OVERLAP_GRID_SLOT_MS = 15 * 60 * 1000;
 const MILESTONE_TITLE = /hacking\s+starts|hacking\s+ends|devpost\s+deadline/i;
+const CHECK_IN_TITLE = /^check[-\s]?in$/i;
+const QUIET_TIME_TITLE = /^quiet\s+time$/i;
+
+/** Normalized category slug for schedule color coding (`check_in`, `meal`, …). */
+export function resolveScheduleDisplayCategory(
+  entry: Pick<ScheduleEntry, "title" | "category">,
+): string {
+  const title = entry.title.trim();
+  if (CHECK_IN_TITLE.test(title)) return "check_in";
+  if (QUIET_TIME_TITLE.test(title)) return "check_in";
+  if (MILESTONE_TITLE.test(title)) return "milestone";
+  const normalized = entry.category
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+  if (normalized === "quiet_time") return "check_in";
+  return normalized || "event";
+}
+
+export function scheduleSlotCategoryClass(
+  entry: Pick<ScheduleEntry, "title" | "category">,
+  slotBlock = "weekend-slot",
+) {
+  const slug = resolveScheduleDisplayCategory(entry).replace(/_/g, "-");
+  return `${slotBlock}--cat-${slug}`;
+}
 
 export function scheduleEntrySlotCount(
   entry: ScheduleTimeWindow,
@@ -25,6 +52,25 @@ export function scheduleEntryIsMilestone(
   entry: ScheduleTimeWindow & { title?: string },
 ) {
   return Boolean(entry.title && MILESTONE_TITLE.test(entry.title));
+}
+
+/** Milestones that may span the full overlap grid (not Hacking Starts). */
+export function scheduleEntrySpansOverlapGridFullWidth(
+  entry: ScheduleTimeWindow & { title?: string },
+) {
+  if (!scheduleEntryIsMilestone(entry)) return false;
+  const title = entry.title?.trim() ?? "";
+  return !/^hacking\s+starts$/i.test(title);
+}
+
+export function scheduleEntryOverlapGridFullWidth<T extends ScheduleTimeWindow>(
+  entry: ScheduleTimeWindow & { title?: string },
+  entries: readonly T[],
+) {
+  return (
+    scheduleEntrySpansOverlapGridFullWidth(entry)
+    && !scheduleEntryOverlapsAnother(entry, entries)
+  );
 }
 
 export function formatScheduleEntryTime(entry: ScheduleTimeWindow & { title?: string }) {
@@ -112,10 +158,13 @@ export function buildScheduleDayOverlapPlacements<T extends ScheduleTimeWindow>(
       gridRowStart + 1,
       Math.ceil((entry.endsAt - origin) / slotMs) + 1,
     );
+    const titled = entry as ScheduleTimeWindow & { title?: string };
     return {
       entry,
       column: columns.get(entry) ?? 0,
-      fullWidth: !scheduleEntryOverlapsAnother(entry, entries),
+      fullWidth:
+        scheduleEntryOverlapGridFullWidth(titled, entries)
+        || (!scheduleEntryIsMilestone(titled) && !scheduleEntryOverlapsAnother(entry, entries)),
       gridRowStart,
       gridRowEnd,
     };
